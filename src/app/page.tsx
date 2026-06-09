@@ -576,8 +576,8 @@ export default function CompleteSportWellApp() {
         )}
         <div className="glass-panel-dark text-white rounded-2xl max-w-sm w-full p-8 shadow-2xl border border-white/10 space-y-6">
           <div className="text-center">
-            <div className="inline-block p-4 rounded-xl brand-gradient mb-3">
-              <span className="text-2xl font-bold">SW</span>
+            <div className="inline-block mb-3 overflow-hidden rounded-xl bg-black border border-white/10 p-1">
+              <img src="/logo.png" alt="SportWell Logo" className="w-16 h-16 object-contain" />
             </div>
             <h2 className="text-xl font-bold">SportWell Klientsky Portál</h2>
             <p className="text-xs text-gray-400 mt-1">Pre prístup k vašim diagnostikám a tréningom.</p>
@@ -664,8 +664,8 @@ export default function CompleteSportWellApp() {
       <header className="brand-gradient text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
-              <span className="text-brand-navy font-bold text-xl">SW</span>
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-black flex items-center justify-center p-0.5 border border-white/10">
+              <img src="/logo.png" alt="SportWell Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">SportWell</h1>
