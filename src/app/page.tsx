@@ -9,6 +9,7 @@ interface ClientProfile {
   role: 'admin' | 'ortoped' | 'fyzioterapeut' | 'maser' | 'trener' | 'nutricny' | 'klient';
   first_name: string;
   last_name: string;
+  email?: string;
   phone: string;
   gdpr_accepted_at: string | null;
   gdpr_version: string | null;
@@ -108,7 +109,7 @@ export default function CompleteSportWellApp() {
   const [currentUserProfile, setCurrentUserProfile] = useState<ClientProfile | null>(null);
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
-  const [authMode, setAuthMode] = useState<'login' | 'reset'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'reset' | 'register'>('login');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   // 3. APPLICATION TABS & MOCKUP DATA
@@ -149,6 +150,7 @@ export default function CompleteSportWellApp() {
   // 4. INTERACTION FILTERS AND FORM VARIABLES
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [videoSearch, setVideoSearch] = useState("");
   const [clientFilter, setClientFilter] = useState<'all' | 'gdpr_missing' | 'inactive'>('all');
   
   // Custom Registration Form
@@ -222,6 +224,7 @@ export default function CompleteSportWellApp() {
 
     if (data) {
       setCurrentUserProfile(data);
+      setNewClientPhone(data.phone || "");
       // Fetch dependent lists
       loadData(data);
     } else {
@@ -235,6 +238,7 @@ export default function CompleteSportWellApp() {
         gdpr_accepted_at: null,
         gdpr_version: null
       };
+      setNewClientPhone("");
       setCurrentUserProfile(defaultProf);
       loadData(defaultProf);
     }
@@ -333,6 +337,27 @@ export default function CompleteSportWellApp() {
         fetchUserProfile(data.user.id);
         triggerToast("Úspešne prihlásený!");
       }
+    } else if (authMode === 'register') {
+      const { data, error } = await supabase.auth.signUp({
+        email: authEmail,
+        password: authPassword
+      });
+      if (error) {
+        triggerToast(`Chyba registrácie: ${error.message}`);
+      } else if (data.user) {
+        // Create initial profile
+        await supabase.from("profiles").insert({
+          id: data.user.id,
+          role: "klient",
+          first_name: "Registrovaný",
+          last_name: "Klient",
+          phone: "",
+          email: authEmail
+        });
+        setSessionUser(data.user);
+        fetchUserProfile(data.user.id);
+        triggerToast("Úspešne registrovaný a prihlásený!");
+      }
     } else {
       // WordPress migrated flow: Trigger Password reset
       const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
@@ -369,7 +394,8 @@ export default function CompleteSportWellApp() {
         role: "klient",
         first_name: newClientFirst,
         last_name: newClientLast,
-        phone: newClientPhone
+        phone: newClientPhone,
+        email: newClientEmail
       });
 
       if (!error) {
@@ -498,6 +524,38 @@ export default function CompleteSportWellApp() {
     triggerToast("Platba bola úspešne vytlačená do eKasy.");
   };
 
+  const submitWorkoutFeedback = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackWorkId) return;
+
+    setWorkoutPlans(prev =>
+      prev.map(w =>
+        w.id === feedbackWorkId
+          ? { ...w, completed: true, rpe: feedbackRpe, pain_level: feedbackPain, notes: feedbackNote }
+          : w
+      )
+    );
+    triggerToast("Tréningový log bol úspešne zaznamenaný!");
+    setFeedbackWorkId(null);
+  };
+
+  const updateProfilePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUserProfile) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: newClientPhone })
+      .eq("id", currentUserProfile.id);
+
+    if (!error) {
+      triggerToast("Telefónne číslo bolo úspešne aktualizované.");
+      fetchUserProfile(currentUserProfile.id);
+    } else {
+      triggerToast(`Chyba: ${error.message}`);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-brand-off-white">
@@ -510,6 +568,12 @@ export default function CompleteSportWellApp() {
   if (!sessionUser) {
     return (
       <div className="flex flex-col min-h-screen bg-brand-dark-navy justify-center items-center p-4">
+        {toast && (
+          <div aria-live="polite" className="fixed bottom-6 right-6 z-50 glass-panel-dark text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-brand-cyan">
+            <span className="w-2 h-2 rounded-full bg-brand-cyan animate-ping"></span>
+            <span>{toast}</span>
+          </div>
+        )}
         <div className="glass-panel-dark text-white rounded-2xl max-w-sm w-full p-8 shadow-2xl border border-white/10 space-y-6">
           <div className="text-center">
             <div className="inline-block p-4 rounded-xl brand-gradient mb-3">
@@ -532,7 +596,7 @@ export default function CompleteSportWellApp() {
               />
             </div>
 
-            {authMode === 'login' && (
+            {(authMode === 'login' || authMode === 'register') && (
               <div>
                 <label className="block text-gray-300 font-semibold mb-1">Heslo</label>
                 <input
@@ -551,17 +615,34 @@ export default function CompleteSportWellApp() {
               disabled={isAuthLoading}
               className="w-full py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl text-xs hover:bg-brand-hover-cyan transition-colors"
             >
-              {isAuthLoading ? "Počkajte…" : authMode === 'login' ? "Prihlásiť sa" : "Aktivovať účet (Reset hesla)"}
+              {isAuthLoading ? "Počkajte…" : authMode === 'login' ? "Prihlásiť sa" : authMode === 'register' ? "Zaregistrovať sa" : "Aktivovať účet (Reset hesla)"}
             </button>
           </form>
 
-          <div className="text-center">
-            <button
-              onClick={() => setAuthMode(authMode === 'login' ? 'reset' : 'login')}
-              className="text-brand-cyan hover:underline text-[10px]"
-            >
-              {authMode === 'login' ? "Máte u nás účet z WordPressu? Aktivujte ho tu" : "Naspäť na prihlásenie"}
-            </button>
+          <div className="flex flex-col gap-2 text-center">
+            {authMode === 'login' ? (
+              <>
+                <button
+                  onClick={() => setAuthMode('register')}
+                  className="text-brand-cyan hover:underline text-[10px]"
+                >
+                  Nemáte účet? Zaregistrujte sa tu
+                </button>
+                <button
+                  onClick={() => setAuthMode('reset')}
+                  className="text-brand-cyan hover:underline text-[10px]"
+                >
+                  Máte u nás účet z WordPressu? Aktivujte ho tu
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setAuthMode('login')}
+                className="text-brand-cyan hover:underline text-[10px]"
+              >
+                Naspäť na prihlásenie
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -623,15 +704,20 @@ export default function CompleteSportWellApp() {
                     if (e.target.checked) {
                       const { error } = await supabase
                         .from("profiles")
-                        .update({
+                        .upsert({
+                          id: currentUserProfile.id,
+                          role: currentUserProfile.role,
+                          first_name: currentUserProfile.first_name || "Nový",
+                          last_name: currentUserProfile.last_name || "Používateľ",
                           gdpr_accepted_at: new Date().toISOString(),
                           gdpr_version: "v1.0"
-                        })
-                        .eq("id", currentUserProfile.id);
+                        });
 
                       if (!error) {
                         triggerToast("Súhlas s GDPR bol úspešne zaznamenaný.");
                         fetchUserProfile(currentUserProfile.id);
+                      } else {
+                        triggerToast(`Chyba uloženia súhlasu: ${error.message}`);
                       }
                     }
                   }}
@@ -816,6 +902,7 @@ export default function CompleteSportWellApp() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="p-3 bg-brand-off-white/60 rounded-xl">
                     <strong className="block text-gray-400 uppercase text-[9px] mb-1">Kontakt</strong>
+                    <p><strong>E-mail:</strong> {selectedClient.email || "Nezadaný"}</p>
                     <p><strong>Telefón:</strong> {selectedClient.phone}</p>
                     <p><strong>GDPR:</strong> {selectedClient.gdpr_accepted_at ? "Podpísané" : "Chýba súhlas"}</p>
                   </div>
@@ -986,6 +1073,237 @@ export default function CompleteSportWellApp() {
             </div>
           )}
 
+          {/* TAB 6: MÔJ PLÁN */}
+          {activeTab === "plan" && (
+            <div className="space-y-6 animate-fade-in text-xs">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-4">
+                <h2 className="text-xl font-bold text-brand-navy">Môj domáci tréningový plán</h2>
+                <p className="text-gray-400 mt-1">Aktuálny zoznam rehabilitačných cvičení predpísaných vaším špecialistom.</p>
+                <div className="space-y-3">
+                  {workoutPlans.map(w => (
+                    <div key={w.id} className="flex flex-col sm:flex-row justify-between sm:items-center bg-brand-off-white/50 p-4 rounded-xl border gap-4">
+                      <div>
+                        <strong className="text-sm text-brand-navy">{w.exercise_title}</strong>
+                        <div className="text-gray-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                          <span>Série: <strong>{w.sets}</strong></span>
+                          <span>Opakovania: <strong>{w.reps}</strong></span>
+                          <span>Tempo: <strong>{w.tempo}</strong></span>
+                          <span>Pauza: <strong>{w.pause}</strong></span>
+                        </div>
+                        {w.notes && <p className="text-[11px] text-gray-400 mt-1 italic">Poznámka lekára: {w.notes}</p>}
+                        {w.completed && (
+                          <div className="mt-2 p-2 bg-brand-cyan/5 border border-brand-cyan/15 rounded text-[10px] text-brand-navy">
+                            Zaznamenaná náročnosť (RPE): <strong>{w.rpe}/10</strong> | Bolesť: <strong>{w.pain_level}/10</strong>
+                            {w.notes && <p className="mt-0.5">Moja poznámka: {w.notes}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {w.completed ? (
+                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Splnené
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setFeedbackWorkId(w.id);
+                              setFeedbackNote("");
+                            }}
+                            className="px-4 py-2 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors"
+                          >
+                            Cvičiť
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-4">
+                <h2 className="text-xl font-bold text-brand-navy">Moja lekárska a diagnostická karta</h2>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                  {medicalCards.filter(m => m.client_id === currentUserProfile?.id).length === 0 ? (
+                    <p className="text-gray-500 italic">Zatiaľ nemáte zapísané žiadne diagnostické záznamy.</p>
+                  ) : (
+                    medicalCards
+                      .filter(m => m.client_id === currentUserProfile?.id)
+                      .map(m => (
+                        <div key={m.id} className="p-4 bg-brand-off-white/40 border rounded-xl space-y-3">
+                          <div className="flex justify-between items-center border-b pb-2">
+                            <span className="font-bold text-brand-navy text-sm capitalize">{m.type === 'fyzio' ? 'Fyzioterapia' : m.type} záznam</span>
+                            <span className="text-gray-400 font-mono">{new Date(m.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {m.form_data?.summary && (
+                              <div>
+                                <strong className="block text-gray-400 uppercase text-[9px] mb-1">Diagnóza / Nález</strong>
+                                <p className="text-gray-800 font-medium">{m.form_data.summary}</p>
+                              </div>
+                            )}
+                            {m.form_data?.field1 && (
+                              <div>
+                                <strong className="block text-gray-400 uppercase text-[9px] mb-1">Popis ťažkostí</strong>
+                                <p className="text-gray-700">{m.form_data.field1}</p>
+                              </div>
+                            )}
+                            {m.form_data?.field2 && (
+                              <div className="md:col-span-2">
+                                <strong className="block text-gray-400 uppercase text-[9px] mb-1">Terapeutický plán a odporúčania</strong>
+                                <p className="text-gray-700 bg-brand-cyan/5 border border-brand-cyan/20 p-2.5 rounded-lg">{m.form_data.field2}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: VIDEÁ */}
+          {activeTab === "videa" && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-6 animate-fade-in text-xs">
+              <div className="border-b pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-brand-navy">Videoknižnica cvičení</h2>
+                  <p className="text-gray-400 mt-1">Videá a inštrukcie pre správnu techniku cvičenia.</p>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Vyhľadať cvičenie alebo svalovú skupinu…"
+                  value={videoSearch}
+                  onChange={(e) => setVideoSearch(e.target.value)}
+                  className="bg-brand-off-white border rounded-xl px-4 py-2 text-xs outline-none w-full md:w-64 focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {exercises
+                  .filter(ex => 
+                    ex.title.toLowerCase().includes(videoSearch.toLowerCase()) || 
+                    ex.category.toLowerCase().includes(videoSearch.toLowerCase())
+                  )
+                  .map(ex => (
+                    <div key={ex.id} className="border rounded-2xl overflow-hidden bg-brand-off-white/30 flex flex-col justify-between">
+                      {/* Premium Video/Animation Mockup */}
+                      <div className="aspect-video bg-brand-dark-navy relative flex items-center justify-center overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+                        <div className="z-20 text-center flex flex-col items-center gap-2 p-4">
+                          <div className="w-12 h-12 rounded-full bg-brand-cyan/25 flex items-center justify-center text-brand-cyan border border-brand-cyan animate-pulse">
+                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                          <span className="text-[10px] text-brand-cyan tracking-wider font-semibold uppercase">Video inštruktáž: {ex.title}</span>
+                          <span className="text-[9px] text-white/60">Kliknutím spustíte prehrávanie na celú obrazovku</span>
+                        </div>
+                        {/* Looped CSS visualization background bars */}
+                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end h-6 opacity-30">
+                          <div className="w-1 bg-brand-cyan h-3 animate-bounce"></div>
+                          <div className="w-1 bg-brand-cyan h-5 animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-1 bg-brand-cyan h-2 animate-bounce [animation-delay:0.4s]"></div>
+                          <div className="w-1 bg-brand-cyan h-4 animate-bounce [animation-delay:0.1s]"></div>
+                          <div className="w-1 bg-brand-cyan h-6 animate-bounce [animation-delay:0.3s]"></div>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-bold text-brand-navy text-sm">{ex.title}</h3>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              ex.difficulty === 'lahka' ? 'bg-emerald-50 text-emerald-700' :
+                              ex.difficulty === 'stredna' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                            }`}>
+                              {ex.difficulty}
+                            </span>
+                          </div>
+                          <div className="text-[10px] flex flex-wrap gap-2 text-gray-500 font-semibold">
+                            <span>Zameranie: <strong>{ex.target}</strong></span>
+                            <span>| Pomôcky: <strong>{ex.equipment}</strong></span>
+                          </div>
+                          <p className="text-gray-600 leading-relaxed text-[11px]">{ex.description}</p>
+                        </div>
+                        {ex.contraindications && (
+                          <div className="p-2.5 bg-red-50/50 border border-red-100 rounded-xl mt-2 text-[10px]">
+                            <strong className="text-red-700 block mb-0.5">⚠️ Kontraindikácie:</strong>
+                            <span className="text-red-600">{ex.contraindications}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: MÔJ PROFIL */}
+          {activeTab === "profil" && currentUserProfile && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-6 animate-fade-in text-xs">
+              <div className="border-b pb-4">
+                <h2 className="text-xl font-bold text-brand-navy">Môj profil</h2>
+                <p className="text-gray-400 mt-1">Prehľad vašich registračných údajov a GDPR.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-4">
+                  <div className="p-4 bg-brand-off-white/40 border rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Meno a priezvisko</strong>
+                      <span className="text-sm font-bold text-brand-navy">{currentUserProfile.first_name} {currentUserProfile.last_name}</span>
+                    </div>
+                    <div>
+                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Prihlasovací e-mail</strong>
+                      <span className="text-sm font-bold text-brand-navy">{currentUserProfile.email || sessionUser?.email || "Nezadaný"}</span>
+                    </div>
+                    <div>
+                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Rola v systéme</strong>
+                      <span className="text-xs uppercase tracking-wider font-semibold bg-brand-navy text-white px-2 py-0.5 rounded inline-block mt-0.5">{currentUserProfile.role}</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={updateProfilePhone} className="p-4 bg-brand-off-white/40 border rounded-xl space-y-3">
+                    <h3 className="font-bold text-brand-navy">Upraviť kontaktné údaje</h3>
+                    <div>
+                      <label className="block text-gray-500 font-semibold mb-1">Telefónne číslo</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="tel"
+                          value={newClientPhone}
+                          onChange={(e) => setNewClientPhone(e.target.value)}
+                          className="bg-white border rounded-lg px-3 py-2 text-xs outline-none flex-1 focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                          placeholder="+421 900 000 000"
+                        />
+                        <button type="submit" className="py-2 px-5 bg-brand-cyan text-brand-dark-navy font-bold rounded-lg hover:bg-brand-hover-cyan transition-all">
+                          Uložiť
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="md:col-span-1 p-5 bg-brand-dark-navy text-white rounded-2xl flex flex-col justify-between border border-white/5">
+                  <div className="space-y-3">
+                    <div className="w-8 h-8 rounded-lg bg-brand-cyan/25 flex items-center justify-center text-brand-cyan border border-brand-cyan">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                      </svg>
+                    </div>
+                    <h3 className="font-bold text-brand-cyan text-sm">GDPR Súhlas</h3>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">
+                      Udelili ste povinný súhlas so spracovaním citlivých zdravotných údajov pre vedenie diagnostickej karty.
+                    </p>
+                  </div>
+                  <div className="border-t border-white/10 pt-3 mt-4 text-[10px] text-gray-400 space-y-1 font-mono">
+                    <p>Udelené: {currentUserProfile.gdpr_accepted_at ? new Date(currentUserProfile.gdpr_accepted_at).toLocaleString() : 'Neznáme'}</p>
+                    <p>Verzia: {currentUserProfile.gdpr_version || 'v1.0'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1007,6 +1325,66 @@ export default function CompleteSportWellApp() {
               <button onClick={() => setCancelTargetId(null)} className="px-4 py-2 border rounded-xl hover:bg-gray-100 font-bold">Naspäť</button>
               <button onClick={executeCancel} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold">Potvrdiť storno</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client Workout Logger / Feedback Dialog */}
+      {feedbackWorkId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white text-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border">
+            <h3 className="text-lg font-bold text-brand-navy mb-2">Zaznamenať cvičenie</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Zadajte spätnú väzbu pre cvičenie: <strong>{workoutPlans.find(w => w.id === feedbackWorkId)?.exercise_title}</strong>
+            </p>
+            <form onSubmit={submitWorkoutFeedback} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold mb-1 text-gray-600">Subjektívna náročnosť (RPE): {feedbackRpe}/10</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={feedbackRpe}
+                  onChange={(e) => setFeedbackRpe(parseInt(e.target.value))}
+                  className="w-full accent-brand-cyan"
+                />
+                <div className="flex justify-between text-[9px] text-gray-400 font-semibold px-1">
+                  <span>Lahké (1)</span>
+                  <span>Max. úsilie (10)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-gray-600">Úroveň pociťovanej bolesti: {feedbackPain}/10</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  value={feedbackPain}
+                  onChange={(e) => setFeedbackPain(parseInt(e.target.value))}
+                  className="w-full accent-brand-cyan"
+                />
+                <div className="flex justify-between text-[9px] text-gray-400 font-semibold px-1">
+                  <span>Bez bolesti (0)</span>
+                  <span>Neznesiteľná (10)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1 text-gray-600">Moja poznámka / pocity (voliteľné)</label>
+                <textarea
+                  value={feedbackNote}
+                  onChange={(e) => setFeedbackNote(e.target.value)}
+                  className="w-full bg-brand-off-white border p-2 rounded-lg outline-none h-16"
+                  placeholder="Ako sa vám cvičilo, pocity v kĺbe…"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setFeedbackWorkId(null)} className="px-4 py-2 border rounded-xl hover:bg-gray-100 font-bold">Zrušiť</button>
+                <button type="submit" className="px-4 py-2 bg-brand-cyan text-brand-dark-navy rounded-xl font-bold hover:bg-brand-hover-cyan">Uložiť záznam</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
