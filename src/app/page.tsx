@@ -103,13 +103,6 @@ export default function CompleteSportWellApp() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-brand-off-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-navy border-t-transparent"></div>
-      </div>
-    );
-  }
 
   // 3. SEED DATABASES STATE
   const [clients, setClients] = useState<Client[]>([
@@ -390,6 +383,14 @@ export default function CompleteSportWellApp() {
     { role: 'nutricny', first_name: 'Ing. Silvia' },
     { role: 'admin', first_name: 'Administrátor' }
   ];
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-brand-off-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-navy border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-off-white text-gray-800 font-sans">
