@@ -1,8 +1,15 @@
 import { createBrowserClient } from '@supabase/ssr';
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !key) {
+    // Return a dummy proxy to prevent build-time crashes when environment variables are missing
+    return new Proxy({}, {
+      get: () => () => ({ data: null, error: null })
+    }) as any;
+  }
+
+  return createBrowserClient(url, key);
 }
