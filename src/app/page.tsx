@@ -92,11 +92,24 @@ export default function CompleteSportWellApp() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const isEmployee = activeRole !== "klient";
   const [toast, setToast] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const triggerToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-brand-off-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-navy border-t-transparent"></div>
+      </div>
+    );
+  }
 
   // 3. SEED DATABASES STATE
   const [clients, setClients] = useState<Client[]>([
