@@ -3,159 +3,155 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+# Technická dokumentácia & Vývojárska príručka (SportWell v3.0 - Fáza 1 MVP)
 
-# Technická dokumentácia & Vývojárska príručka (SportWell)
-
-Tento dokument slúži ako kompletný návod a špecifikácia pre vývojárov a agentov pracujúcich na aplikácii pre rehabilitačné a športové centrum **SportWell**. Umožňuje plynulé pokračovanie vo vývoji.
+Tento dokument slúži ako kompletný návod a špecifikácia pre vývojárov a agentov pracujúcich na aplikácii pre rehabilitačné a športové centrum **SportWell**. Popisuje stav systému po migrácii na verziu 3.0 (Fáza 1 Core MVP).
 
 ---
 
-## 1. PREHĽAD PROJEKTU A CIELE
-Aplikácia SportWell je integrovaný informačný systém a klientsky portál navrhnutý ako **Progressive Web App (PWA)** s prioritou pre mobilné zobrazenie (Mobile-First).
+## 1. ARCHITEKTÚRA & TECHNOLOGICKÝ STACK
+Aplikácia SportWell funguje ako Progressive Web App (PWA) s prioritou pre mobilné zobrazenie.
 
-### Hlavné technologické jadro:
-- **Frontend:** React 19, Next.js 16.2.7 (spustený vo Webpack režime kvôli kompatibilite s PWA pluginmi).
-- **Styling:** Tailwind CSS v4, custom font *Noto Sans* s lokálnou konfiguráciou premenných.
-- **Backend & Databáza:** Supabase (PostgreSQL) pre ukladanie dát, správu používateľov (Auth) a bezpečné ukladanie súborov (Storage).
-- **Hosting:** Vercel / Cloudflare Pages.
+- **Frontend:** React 19, Next.js 16.2.7 spustený vo Webpack režime (s prepínačom `--webpack`) kvôli zachovaniu spätnej kompatibility s PWA pluginmi.
+- **Styling:** Tailwind CSS v4 s lokálne upraveným písmom *Noto Sans* a pevne definovanými farbami podľa Brand Manualu.
+- **Backend & Databáza:** Supabase (PostgreSQL) pre ukladanie dát, správu používateľov (Auth) a dokumentov (Storage).
 
 ---
 
 ## 2. VIZUÁLNA IDENTITA & BRAND MANUAL
-Aplikácia využíva špecifickú farebnú schému a typografické pravidlá zadefinované v `SportWell_Brand_Manual.md`. 
+Všetky rozhrania striktne dodržiavajú farebnú schému a typografické pravidlá zadefinované v `SportWell_Brand_Manual.md`.
 
-### CSS Premenné (v `src/app/globals.css`):
+### HSL & HEX CSS Premenné (v `src/app/globals.css`):
 - `--font-sans`: *Noto Sans* (subsets latin, latin-ext).
-- **Primárne farby:**
-  - `brand-navy` (`#0A192F`): Tmavomodrá, základná farba pre texty, hlavičky a hlavné tlačidlá.
-  - `brand-dark-navy` (`#020C1B`): Veľmi tmavá modrá používaná na pozadia panelov a tmavý režim prihlásenia.
-  - `brand-cyan` (`#00F0FF`): Tyrkysová/azúrová farba pre akcenty, aktívne stavy, rámčeky a interaktívne body.
+- **Základné farby:**
+  - `brand-navy` (`#0A192F`): Tmavomodrá, základná farba pre texty a hlavné tlačidlá.
+  - `brand-dark-navy` (`#020C1B`): Veľmi tmavá modrá pre pozadia panelov a tmavý režim prihlásenia.
+  - `brand-cyan` (`#00F0FF`): Tyrkysová/azúrová farba pre akcenty, aktívne stavy a interaktívne body.
   - `brand-light-cyan` (`#D3FAFF`): Svetlá tyrkysová pre pozadia tlačidiel a jemné highlighty.
   - `brand-off-white` (`#F7FAFC`): Neutrálne svetlé pozadie pre klientske rozhranie.
 
-### UX Pravidlá:
-- **Hit Targets:** Všetky klikateľné elementy (tlačidlá, odkazy, checkbox) majú minimálny dotykový rozmer **44x44px** pre bezproblémové ovládanie na mobilných zariadeniach.
-- **Micro-animations:** SVG mapa bolesti má aktívnu hover odozvu, videá v knižnici zobrazujú pulzujúci a vlniaci sa indikátor simulujúci prehrávanie, a prechody medzi kartami využívajú animáciu postupného zobrazenia (`animate-fade-in`).
+### UX & Mobilné pravidlá (Mobile-First):
+- **Zamedzenie zoomu na iOS:** Hlavička HTML obsahuje meta tag: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />` pre elimináciu otravného zoomovania vstupných polí na iPhonoch.
+- **Hit Targets:** Všetky klikateľné elementy (tlačidlá, odkazy, checkbox) majú minimálny dotykový rozmer **44x44px** na mobilných zariadeniach.
+- **Bottom Navigation Bar:** Pre rolu `klient` na mobilných zariadeniach je bočné menu nahradené dolným navigačným barom (Home, Moje Cviky, Dokumenty, Profil), čím sa odstraňuje nutnosť hamburger menu.
 
 ---
 
-## 3. INFRASŠTRUKTÚRA & PREPOJENIE SO SUPABASE
-Konfigurácia prostredia a autentifikačných klientov je rozdelená nasledovne:
+## 3. DÁTOVÝ MODEL & POSTGRESQL SCHÉMA
 
-- **`.env.local`:** Obsahuje URL adresu projektu a publishable anon key.
-- **`src/utils/supabase/`**:
-  - `client.ts`: Inicializuje browser-based klienta pre client-side komponenty (`"use client"`).
-  - `server.ts`: Inicializuje server-based klienta pre Server Components.
-  - `middleware.ts`: Aktualizuje auth session v cookies (nutné pre Next.js 16 routing).
-- **`src/proxy.ts`**:
-  - Implementuje proxy smerovanie požiadaviek (Next.js 16 nahrádza starý `middleware.ts` týmto proxy súborom, ktorý exportuje funkciu `proxy`).
-- **Autentifikácia:** Registrácie a prihlásenia bežia na Supabase Auth. Lokálne testovanie funguje s **vypnutým potvrdzovaním e-mailov (Confirm email)** v Supabase kvôli obmedzeniam SMTP limitov na bezplatnom serveri. V produkcii sa po prepojení na vlastné SMTP (napr. Websupport) toto potvrdzovanie znova zapne.
-
----
-
-## 4. DÁTOVÝ MODEL & POSTGRESQL SCHÉMA
-
-Databáza v Supabase pozostáva z piatich hlavných tabuliek schémy `public`:
+Databáza v Supabase pozostáva z nasledujúcich tabuliek schémy `public`:
 
 ### A. Profiles (`public.profiles`)
-Uchováva osobné údaje a roly používateľov. Je prepojená s `auth.users`.
+Uchováva osobné údaje a roly používateľov prepojené s `auth.users`.
 - `id` (uuid, primary key, references `auth.users`)
-- `role` (enum `user_role`: 'admin', 'ortoped', 'fyzioterapeut', 'maser', 'trener', 'nutricny', 'klient')
-- `first_name` (text)
-- `last_name` (text)
+- `role` (enum `user_role`: `'admin'`, `'trener'`, `'klient'`) - Roly boli v v3.0 konsolidované. Špecialisti (masér, ortopéd, atď.) sú zjednotení pod rolou `'trener'`.
+- `full_name` (text, spojené meno a priezvisko)
 - `email` (text, synchronizovaný e-mail)
 - `phone` (text)
-- `gdpr_accepted_at` (timestamp)
-- `gdpr_version` (text)
+- `gdpr_signed_at` (timestamp, čas podpísania GDPR)
+- `metadata` (jsonb, uchováva narodeniny, adresu, primárny záujem a voliteľné marketingové súhlasy)
 - `created_at` (timestamp)
 
-### B. Medical Cards (`public.medical_cards`)
-Zdravotná dokumentácia pacienta.
+### B. Form Templates (`public.form_templates`)
+Šablóny pre dynamické formuláre špecialistov (diagnostiky, konzultácie, atď.).
+- `id` (uuid, primary key)
+- `title` (text)
+- `category` (text)
+- `schema` (jsonb, pole polí s definovaným typom, štítkom, placeholderom a validáciami)
+- `is_active` (boolean)
+- `created_at` (timestamp)
+
+### C. Client Records (`public.client_records`)
+Záznamy o zdravotnom stave a diagnostike vyplnené na základe dynamických šablón.
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
 - `created_by` (uuid, references `profiles.id`)
-- `type` (enum `medical_card_type`: 'ortoped', 'fyzio', 'masaz', 'trening', 'nutricia')
-- `pain_map_data` (jsonb, pole kliknutých bodov bolesti a intenzity)
-- `form_data` (jsonb, polia lekárskeho nálezu)
+- `template_id` (uuid, references `form_templates.id`)
+- `form_data` (jsonb, ukladá hodnoty dynamic formulárov vrátane popisu a VAS stupnice bolesti)
 - `created_at` (timestamp)
 
-### C. Reservations (`public.reservations`)
-Rezervačný kalendár.
+### D. Exercises (`public.exercises`)
+Zoznam rehabilitačných cvičení s inštruktážnymi detailmi a URL na videá.
+- `id` (uuid, primary key)
+- `title` (text)
+- `category` (text)
+- `target` (text)
+- `difficulty` (text)
+- `equipment` (text)
+- `description` (text)
+- `contraindications` (text)
+- `video_url` (text)
+- `created_at` (timestamp)
+
+### E. Training Plans (`public.training_plans`)
+Tréningové a domáce plány cvičení predpísané trénermi pre klientov.
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
-- `staff_id` (uuid, references `profiles.id`)
-- `start_time` (timestamp)
-- `end_time` (timestamp)
-- `status` (enum `reservation_status`: 'pending', 'confirmed', 'cancelled_by_client', 'cancelled_by_staff', 'no_show')
-- `cancelled_at` (timestamp)
+- `created_by` (uuid, references `profiles.id`)
+- `plan_data` (jsonb, pole cvičení s parametrami: sets, reps, tempo, pause, notes, completed, rpe, pain_level)
 - `created_at` (timestamp)
 
-### D. Audit Logs (`public.audit_logs`)
-Nezmeniteľný zápis všetkých zmien v zdravotnej dokumentácii (vyžadované GDPR).
+### F. Documents (`public.documents`)
+Evidencia právnych zmlúv a PDF súborov (napr. podpísaných GDPR doložiek).
 - `id` (uuid, primary key)
-- `user_id` (uuid)
-- `table_name` (text)
-- `action` (text - 'INSERT', 'UPDATE', 'DELETE')
-- `record_id` (uuid)
-- `old_data` (jsonb)
-- `new_data` (jsonb)
+- `client_id` (uuid, references `profiles.id`)
+- `file_name` (text)
+- `storage_path` (text)
 - `created_at` (timestamp)
 
 ---
 
-## 5. BEZPEČNOSŤ & RLS POLITIKY (ROW LEVEL SECURITY)
+## 4. BEZPEČNOSŤ & RLS POLITIKY (ROW LEVEL SECURITY)
 
-Všetky tabuľky majú striktne zapnuté **RLS**. Na zabránenie chyby nekonečného zacyklenia dopytov (`infinite recursion`) pri kontrole rolí je v databáze zavedená pomocná bezpečnostná funkcia `is_specialist` typu **`security definer`**.
+Všetky tabuľky majú zapnuté **RLS**. Na zabránenie chybe nekonečného zacyklenia dopytov (`infinite recursion`) pri kontrole rolí je v databáze zavedená pomocná bezpečnostná funkcia `is_specialist` typu **`security definer`**.
 
-### Kľúčové RLS politiky:
-1. **Profiles (`public.profiles`):**
-   - Používatelia môžu čítať, vytvárať (`insert`) a upravovať (`update`) výhradne svoj vlastný profil (`auth.uid() = id`).
-   - Zamestnanci (s rolou admin, fyzio, ortoped, atď.) môžu čítať všetky profily pre účely terapie a administrácie (kontrolované cez `is_specialist(auth.uid())`).
-2. **Medical Cards (`public.medical_cards`):**
-   - Klient má právo na čítanie iba svojich vlastných kariet (`client_id = auth.uid()`).
-   - Právo na zápis a čítanie majú iba lekári/fyzioterapeuti (admin, ortoped, fyzioterapeut).
-3. **Audit logovanie:**
-   - Každá zmena (INSERT, UPDATE, DELETE) v tabuľke `medical_cards` automaticky spúšťa trigger `audit_medical_cards_trigger`, ktorý zapíše pôvodný a nový stav záznamu do `audit_logs`.
+### Riešenie nekonečnej slučky v politikách:
+Funkcia `is_specialist` obchádza RLS priamo nad tabuľkou `profiles` (keďže beží pod právami tvorcu funkcie - superuser):
+```sql
+CREATE OR REPLACE FUNCTION is_specialist(user_id uuid)
+RETURNS boolean AS $$
+begin
+  return exists (
+    select 1 from public.profiles
+    where id = user_id and role in ('admin', 'trener')
+  );
+end;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
 
----
-
-## 6. ROLE-BASED ACCESS CONTROL (RBAC) & OBRAZOVKY
-
-Aplikácia má jedno hlavné klientske/interné rozhranie (`src/app/page.tsx`), ktoré na základe roly prihláseného používateľa dynamicky mení bočné menu a dostupné zobrazenia.
-
-### A. Rola: `klient` (Pacient)
-Materiál a vzhľad navrhnutý pre maximálne pohodlie pacienta.
-1. **Dashboard:** Zobrazuje najbližší plánovaný termín rehabilitácie a dnešný domáci tréningový plán (checklist cvičení).
-2. **Môj plán:**
-   - *Domáci plán cvičení:* Zoznam predpísaných rehabilitácií s parametrami (série, opakovania, tempo, pauza). Po kliknutí na „Cvičiť“ sa otvorí formulár, kde klient zaznamená náročnosť cvičenia (RPE scale 1-10), mieru bolesti (0-10) a pocity, ktoré sa uložia do denníka.
-   - *Lekárska karta:* Prehľad všetkých lekárskych nálezov a diagnostík, ktoré mu terapeuti zapísali.
-3. **Videá:** Interaktívna knižnica cvikov, kde si môže vyhľadať techniku a popisy pre jednotlivé svalové partie.
-4. **Rezervácie:** Kalendár na objednanie sa na vstupnú diagnostiku, fyzioterapiu alebo masáže s automatickou validáciou storna (bezplatné storno do 24 hodín pred termínom, neskôr s prepadnutím zálohy).
-5. **Môj profil:** Osobné údaje s možnosťou úpravy telefónneho čísla a stavom GDPR súhlasu (vrátane presného timestampu a verzie).
-
-### B. Roly Špecialistov: `fyzioterapeut`, `ortoped`, `trener`, `maser`, `nutricny`
-Zobrazenie prispôsobené pre prácu s pacientmi.
-1. **Harmonogram špecialistu:** Zoznam potvrdených rezervácií na dnešný deň pre daného terapeuta.
-2. **Moji klienti:** Zoznam všetkých pacientov s detailným zobrazením ich kontaktu, histórie lekárskych záznamov a timeline diagnostík.
-3. **Diagnostika:** Rozhranie pre vytvorenie nového lekárskeho záznamu (zápis diagnózy, terapeutického plánu a odporúčaní).
-4. **Domáce plány:** Možnosť predpísať a upraviť tréningové plány pre konkrétnych klientov.
-
-### C. Rola: `admin` (Administrátor / Recepcia)
-Zobrazenie s prístupom k prevádzkovým a bezpečnostným dátam.
-1. **Finančný dashboard:** Prehľad celkového obratu, vyťaženosti strediska a simulačný modul platobnej brány / eKasa tlače (kartou / v hotovosti).
-2. **Registrácia klienta:** Formulár pre registráciu nového pacienta priamo na recepcii.
-3. **GDPR Audit Logs:** Prehľad kompletného auditného logu s podrobnými JSON informáciami o zmenách v zdravotných kartách pre maximálnu legislatívnu bezpečnosť.
+### Kľúčové politiky:
+1. **Profiles:**
+   - `profiles_select_own`: Používateľ vidí svoj vlastný profil (`auth.uid() = id`).
+   - `profiles_select_specialist`: Špecialisti (admin, trener) vidia všetky profily (`is_specialist(auth.uid())`).
+   - `profiles_update_own`: Klient môže aktualizovať iba svoj vlastný profil.
+2. **Training Plans & Client Records:**
+   - Klient môže čítať iba záznamy, kde `client_id = auth.uid()`.
+   - Admin a Tréner majú plné práva (čítanie, zápis, aktualizácia).
+3. **Documents:**
+   - Klient môže čítať svoje dokumenty (`client_id = auth.uid()`).
+   - Klient môže **vložiť** svoj dokument (pri GDPR onboardingu): `WITH CHECK (client_id = auth.uid())`.
+   - Admin a Tréner majú prístup ku všetkým dokumentom.
 
 ---
 
-## 7. POKRAČOVANIE VO VÝVOJI (NEXT STEPS)
-Pri nadviazaní na existujúci kód sa odporúča zamerať na tieto úlohy:
-1. **Prepojenie statických zoznamov na DB:** Nahradiť zostávajúce mockované zoznamy (napr. zoznam služieb alebo statické pole cvičení `exercises`) reálnymi Supabase dopytmi na príslušné tabuľky.
-2. **Reálne video súbory:** Prepojiť prehrávač cvičení v sekcii videí so Supabase Storage kýblom (bucketom), kde budú nahrané krátke `.mp4` / `.webm` inštruktážne slučky.
-3. ** WordPress migrácia:** Dokončiť skript na hromadný import 4 000 používateľov z pôvodného WordPressu do Supabase Auth a odladiť e-mailovú šablónu pre aktivačný reset hesla.
-4. **Generovanie PDF reportov:** Implementovať Supabase Edge Function, ktorá po podpísaní GDPR vygeneruje PDF potvrdenie o súhlase a uloží ho do klientskeho priečinka.
+## 5. DÔLEŽITÉ MODULY A MECHANIZMY V KÓDE (`src/app/page.tsx`)
+
+### A. Dynamický Form Renderer
+Formulár v záložke **Diagnostika** pre trénerov sa generuje na základe schémy z vybranej šablóny (`form_templates`):
+- Prechádza JSON pole `schema`.
+- Podporuje typy: `text`, `number`, `textarea`, `select`, `checkbox` a špeciálnu `vas_scale` (interaktívny slider 0-10 pre zaznamenanie bolesti s vizuálnym indikátorom).
+- Po odoslaní ukladá celé dáta do `client_records` v JSONB formáte.
+
+### B. 3-stupňový GDPR Wizard
+Blokuje prístup do klientskej zóny, kým klient nepodpíše súhlasy:
+1. **Osobné údaje (Krok 1):** Meno, priezvisko, dátum narodenia, adresa, záujem o služby.
+2. **Povinné súhlasi (Krok 2):** VOP a zmluvné doložky spracovania citlivých údajov s rozbaľovacími akordónmi pre detailné informácie.
+3. **Dobrovoľné súhlasi (Krok 3):** Marketing (Ecomail), Lookalike audiencie (Meta), prepojenie InBody.
+Po dokončení ukladá GDPR timestamp do profilu a simuluje vytvorenie podpísaného PDF doložky v tabuľke `documents`.
+
+### C. Tréningový Pláner (Prescription Builder)
+Umožňuje trénerom v záložke **Domáce plány** spravovať a predpisovať cvičenia pre klientov:
+- Reaktívne načítava tréningový plán po výbere klienta z dropdown zoznamu.
+- Umožňuje zvoliť cvičenie zo zoznamu `exercises` z DB, nastaviť série, opakovania, tempo a poznámky, a následne ho vložiť do databázy.
+- Tréneri môžu jednotlivé cvičenia z plánu vymazať (funkcia `deleteClientExercise`), pričom sa reaktívne aktualizuje DB.

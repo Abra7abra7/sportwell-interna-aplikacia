@@ -30,6 +30,7 @@ body {
   background: var(--brand-off-white);
   color: var(--foreground);
   font-family: var(--font-noto-sans), system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
