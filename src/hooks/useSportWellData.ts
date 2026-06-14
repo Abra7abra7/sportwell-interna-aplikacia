@@ -58,6 +58,7 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [hasMoreClients, setHasMoreClients] = useState(true);
   const [medicalCards, setMedicalCards] = useState<MedicalCard[]>([]);
+  const [clientRecords, setClientRecords] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -158,6 +159,16 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
     if (profile.role === 'klient') {
       await fetchClientWorkoutPlans(profile.id);
     }
+
+    // 8. Fetch Client Records (diagnostics)
+    let recordsQuery = supabase
+      .from('client_records')
+      .select('*, profiles_client:client_id(full_name), profiles_creator:created_by(full_name, role), form_templates:template_id(title, category)');
+    if (profile.role === 'klient') {
+      recordsQuery = recordsQuery.eq('client_id', profile.id);
+    }
+    const { data: dbRecords } = await recordsQuery;
+    if (dbRecords) setClientRecords(dbRecords);
   };
 
   const fetchClientWorkoutPlans = async (clientId: string) => {
@@ -322,6 +333,8 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
     hasMoreClients,
     medicalCards,
     setMedicalCards,
+    clientRecords,
+    setClientRecords,
     appointments,
     setAppointments,
     auditLogs,

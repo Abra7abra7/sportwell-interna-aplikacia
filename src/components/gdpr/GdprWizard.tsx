@@ -47,7 +47,7 @@ export default function GdprWizard({
   const [onbAddress, setOnbAddress] = useState('');
   const [onbEmail, setOnbEmail] = useState(currentUserProfile.email || sessionUser?.email || '');
   const [onbPhone, setOnbPhone] = useState(currentUserProfile.phone || '');
-  const [onbInterest, setOnbInterest] = useState('Fyzioterapia');
+  const [onbInterest, setOnbInterest] = useState('Fyzioterapia a diagnostika');
 
   const [onbPrivacyAccepted, setOnbPrivacyAccepted] = useState(false);
   const [onbTermsAccepted, setOnbTermsAccepted] = useState(false);
@@ -56,8 +56,23 @@ export default function GdprWizard({
   const [onbDiagAccepted, setOnbDiagAccepted] = useState(false);
 
   const [showPrivacyTerms, setShowPrivacyTerms] = useState(false);
-  const [showBookingTerms, setShowBookingTerms] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Select all handler
+  const handleSelectAll = (checked: boolean) => {
+    setOnbPrivacyAccepted(checked);
+    setOnbTermsAccepted(checked);
+    setOnbMarketingAccepted(checked);
+    setOnbMetaAccepted(checked);
+    setOnbDiagAccepted(checked);
+  };
+
+  const isAllChecked = 
+    onbPrivacyAccepted && 
+    onbTermsAccepted && 
+    onbMarketingAccepted && 
+    onbMetaAccepted && 
+    onbDiagAccepted;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +109,11 @@ export default function GdprWizard({
           <h2 className="text-2xl font-bold">Aktivácia profilu</h2>
           <p className="text-xs text-gray-300 mt-1">
             Krok {onboardingStep} z 3:{' '}
-            {onboardingStep === 1 ? 'Osobné údaje' : onboardingStep === 2 ? 'Povinné zmluvné doložky' : 'Dobrovoľné súhlasy'}
+            {onboardingStep === 1 
+              ? 'Identifikačné údaje' 
+              : onboardingStep === 2 
+                ? 'Výber služby' 
+                : 'Právne súhlasy'}
           </p>
 
           <div className="w-full bg-white/10 h-1 rounded-full mt-4 overflow-hidden">
@@ -162,7 +181,7 @@ export default function GdprWizard({
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-gray-300 font-semibold mb-1">Trvalý pobyt / Adresa <span className="text-red-500">*</span></label>
+              <label htmlFor="address" className="block text-gray-300 font-semibold mb-1">Trvalý pobyt <span className="text-red-500">*</span></label>
               <input
                 id="address"
                 type="text"
@@ -175,7 +194,7 @@ export default function GdprWizard({
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-gray-300 font-semibold mb-1">Kontaktný e-mail <span className="text-red-500">*</span></label>
+              <label htmlFor="email" className="block text-gray-300 font-semibold mb-1">E-mail <span className="text-red-500">*</span></label>
               <input
                 id="email"
                 type="email"
@@ -187,41 +206,90 @@ export default function GdprWizard({
               />
             </div>
 
-            <div>
-              <label htmlFor="interest" className="block text-gray-300 font-semibold mb-1">Primárny záujem o služby</label>
-              <select
-                id="interest"
-                value={onbInterest}
-                onChange={(e) => setOnbInterest(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
-              >
-                <option value="Fyzioterapia">Fyzioterapia</option>
-                <option value="Funkčný tréning">Funkčný tréning</option>
-                <option value="Masáž">Masáž</option>
-              </select>
-            </div>
-
             <button
               type="submit"
-              className="w-full py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors"
+              className="w-full py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors min-h-[44px]"
             >
-              Pokračovať na súhlasy
+              Pokračovať na výber služby
             </button>
           </form>
         )}
 
-        {/* STEP 2: REQUIRED CONSENTS */}
+        {/* STEP 2: SERVICE CHOICE */}
         {onboardingStep === 2 && (
-          <div className="space-y-4 text-xs">
+          <form onSubmit={(e) => { e.preventDefault(); setOnboardingStep(3); }} className="space-y-4 text-xs">
             <div className="p-3 bg-white/5 border border-white/10 rounded-xl leading-relaxed text-gray-300">
-              <p>
-                Spoloční prevádzkovatelia <strong>SportWell s.r.o.</strong> a <strong>SportWell rehab s.r.o.</strong> vyžadujú
-                pre poskytovanie služieb nasledujúce súhlasy:
-              </p>
+              <p>Zvoľte prosím typ služby, o ktorú máte v centre SportWell záujem:</p>
             </div>
 
             <div className="space-y-3">
-              <div className="border border-white/10 rounded-xl p-3 bg-white/5">
+              {[
+                { id: 'srv-1', val: 'Masáž', desc: 'Relaxačné a športové masáže' },
+                { id: 'srv-2', val: 'Funkčný tréning a diagnostika', desc: 'Individuálne pohybové tréningy' },
+                { id: 'srv-3', val: 'Fyzioterapia a diagnostika', desc: 'Rehabilitačné a fyzioterapeutické cvičenia' },
+              ].map((opt) => (
+                <label
+                  key={opt.id}
+                  htmlFor={opt.id}
+                  className="flex items-start gap-3 border border-white/10 rounded-xl p-3 bg-white/5 cursor-pointer hover:border-brand-cyan/40 transition-colors"
+                >
+                  <input
+                    id={opt.id}
+                    type="radio"
+                    name="primaryInterest"
+                    value={opt.val}
+                    checked={onbInterest === opt.val}
+                    onChange={(e) => setOnbInterest(e.target.value)}
+                    className="mt-0.5 w-4 h-4 text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                  />
+                  <div>
+                    <span className="font-bold text-white block">{opt.val}</span>
+                    <span className="text-[10px] text-gray-400">{opt.desc}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setOnboardingStep(1)}
+                className="w-1/3 py-2 border border-white/20 rounded-xl font-bold hover:bg-white/10 min-h-[44px]"
+              >
+                Späť
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors min-h-[44px]"
+              >
+                Pokračovať na súhlasy
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* STEP 3: CONSENTS & E-SIGN */}
+        {onboardingStep === 3 && (
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            
+            {/* Global check all control */}
+            <div className="p-3 bg-brand-cyan/10 border border-brand-cyan/20 rounded-xl">
+              <label htmlFor="selectAll" className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="selectAll"
+                  type="checkbox"
+                  checked={isAllChecked}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                />
+                <span className="font-bold text-brand-cyan">Zaškrtnúť a prijať všetko nasledujúce</span>
+              </label>
+            </div>
+
+            <div className="space-y-3">
+              
+              {/* Checkbox 1: GDPR Article 26 */}
+              <div className="border border-white/10 rounded-xl p-3 bg-white/5 space-y-2">
                 <label htmlFor="privacyConsent" className="flex items-start gap-3 cursor-pointer">
                   <input
                     id="privacyConsent"
@@ -230,93 +298,39 @@ export default function GdprWizard({
                     onChange={(e) => setOnbPrivacyAccepted(e.target.checked)}
                     className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                   />
-                  <span className="font-semibold">
-                    Súhlasím so spracovaním citlivých zdravotných údajov pre diagnózu <span className="text-brand-cyan">(Povinné)</span>
+                  <span>
+                    Oboznámenie sa s pravidlami ochrany osobných údajov... (čl. 26 GDPR) <span className="text-red-500 font-bold">*</span>
                   </span>
                 </label>
                 <button
+                  type="button"
                   onClick={() => setShowPrivacyTerms(!showPrivacyTerms)}
-                  className="text-[10px] text-brand-cyan hover:underline mt-2 block"
+                  className="text-[10px] text-brand-cyan hover:underline block"
                 >
                   {showPrivacyTerms ? 'Zobraziť menej' : 'Zobraziť viac informácií'}
                 </button>
                 {showPrivacyTerms && (
-                  <div className="mt-2 text-[10px] text-gray-400 bg-black/30 p-2.5 rounded-lg border border-white/5 max-h-32 overflow-y-auto space-y-2 leading-relaxed">
-                    <p>
-                      Zaväzujete sa poskytnúť pravdivé údaje o vašom zdravotnom stave za účelom zostavenia rehabilitačného alebo
-                      tréningového plánu.
-                    </p>
-                    <p>
-                      Údaje spracovávame po dobu poskytovania služieb a archivujeme po dobu vyžadovanú legislatívou SR o
-                      zdravotnej starostlivosti.
-                    </p>
+                  <div className="text-[10px] text-gray-400 bg-black/30 p-2.5 rounded-lg border border-white/5 max-h-24 overflow-y-auto leading-relaxed">
+                    Spoloční prevádzkovatelia SportWell s.r.o. a SportWell rehab s.r.o. vyhlasujú pravidlá spracovania osobných údajov a zmluvnú požiadavku potrebnú na plnenie rehabilitačných služieb a tréningov.
                   </div>
                 )}
               </div>
 
-              <div className="border border-white/10 rounded-xl p-3 bg-white/5">
-                <label htmlFor="termsConsent" className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    id="termsConsent"
-                    type="checkbox"
-                    checked={onbTermsAccepted}
-                    onChange={(e) => setOnbTermsAccepted(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
-                  />
-                  <span className="font-semibold">
-                    Súhlasím s podmienkami a VOP rezervačného systému <span className="text-brand-cyan">(Povinné)</span>
-                  </span>
-                </label>
-                <button
-                  onClick={() => setShowBookingTerms(!showBookingTerms)}
-                  className="text-[10px] text-brand-cyan hover:underline mt-2 block"
-                >
-                  {showBookingTerms ? 'Zobraziť menej' : 'Zobraziť viac informácií'}
-                </button>
-                {showBookingTerms && (
-                  <div className="mt-2 text-[10px] text-gray-400 bg-black/30 p-2.5 rounded-lg border border-white/5 max-h-32 overflow-y-auto space-y-2 leading-relaxed">
-                    <p>
-                      Rezervácie sú záväzné. Zrušenie rezervácie bez poplatku je možné najneskôr 24 hodín pred termínom
-                      rehabilitácie.
-                    </p>
-                    <p>
-                      Pri neskorom storne rezervácie si centrum vyhradzuje právo na storno poplatok v plnej výške zálohy alebo
-                      prepadnutie kreditu.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+              {/* Checkbox 2: Booking System Terms */}
+              <label htmlFor="termsConsent" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
+                <input
+                  id="termsConsent"
+                  type="checkbox"
+                  checked={onbTermsAccepted}
+                  onChange={(e) => setOnbTermsAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                />
+                <span>
+                  Súhlas s podmienkami používania rezervačného systému <span className="text-red-500 font-bold">*</span>
+                </span>
+              </label>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setOnboardingStep(1)}
-                className="w-1/3 py-2 px-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors"
-              >
-                Späť
-              </button>
-              <button
-                disabled={!onbPrivacyAccepted || !onbTermsAccepted}
-                onClick={() => setOnboardingStep(3)}
-                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors disabled:opacity-50"
-              >
-                Pokračovať
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: OPTIONAL CONSENTS */}
-        {onboardingStep === 3 && (
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            <div className="p-3 bg-white/5 border border-white/10 rounded-xl leading-relaxed text-gray-300">
-              <p>
-                Môžete udeliť aj dobrovoľné súhlasy na skvalitnenie našich služieb. Tieto súhlasy nie sú povinné a môžete ich
-                kedykoľvek odvolať:
-              </p>
-            </div>
-
-            <div className="space-y-3">
+              {/* Checkbox 3: Marketing email */}
               <label htmlFor="marketingOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
                 <input
                   id="marketingOptIn"
@@ -325,9 +339,10 @@ export default function GdprWizard({
                   onChange={(e) => setOnbMarketingAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                 />
-                <span>Súhlasím so zasielaním noviniek a akcií na e-mail (Ecomail marketing)</span>
+                <span>Súhlas so spracovaním e-mailovej adresy na marketingové účely</span>
               </label>
 
+              {/* Checkbox 4: Meta sharing */}
               <label htmlFor="metaOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
                 <input
                   id="metaOptIn"
@@ -336,11 +351,10 @@ export default function GdprWizard({
                   onChange={(e) => setOnbMetaAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                 />
-                <span>
-                  Súhlasím so zdieľaním e-mailovej adresy s Meta Platforms pre hľadanie podobných publik (Lookalike Audiences)
-                </span>
+                <span>Súhlas s poskytnutím e-mailovej adresy tretej osobe (Meta Platforms) na marketingové účely</span>
               </label>
 
+              {/* Checkbox 5: InBody & Diag */}
               <label htmlFor="diagOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
                 <input
                   id="diagOptIn"
@@ -349,10 +363,9 @@ export default function GdprWizard({
                   onChange={(e) => setOnbDiagAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                 />
-                <span>
-                  Súhlasím so spracovaním a prepojením meraní zo vstupných prístrojov (InBody, FMS diagnostika)
-                </span>
+                <span>Súhlas so spracovaním údajov získaných počas vstupnej diagnostiky</span>
               </label>
+
             </div>
 
             <div className="flex gap-3">
@@ -360,14 +373,14 @@ export default function GdprWizard({
                 type="button"
                 disabled={isSaving}
                 onClick={() => setOnboardingStep(2)}
-                className="w-1/3 py-2 px-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors disabled:opacity-50"
+                className="w-1/3 py-2 px-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors disabled:opacity-50 min-h-[44px]"
               >
                 Späť
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
-                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={isSaving || !onbPrivacyAccepted || !onbTermsAccepted}
+                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
               >
                 {isSaving ? 'Ukladám…' : 'Dokončiť registráciu'}
               </button>

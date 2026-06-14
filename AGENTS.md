@@ -155,3 +155,11 @@ Umožňuje trénerom v záložke **Domáce plány** spravovať a predpisovať cv
 - Reaktívne načítava tréningový plán po výbere klienta z dropdown zoznamu.
 - Umožňuje zvoliť cvičenie zo zoznamu `exercises` z DB, nastaviť série, opakovania, tempo a poznámky, a následne ho vložiť do databázy.
 - Tréneri môžu jednotlivé cvičenia z plánu vymazať (funkcia `deleteClientExercise`), pričom sa reaktívne aktualizuje DB.
+
+### D. Špecializované diagnostické a zmluvné formuláre
+Tieto komponenty poskytujú interaktívne sprievodcovské rozhrania so stavovou validáciou:
+1. **Komplexná & Základná diagnostika** (`ComplexDiagnosticsForm.tsx`): 10-krokový sprievodca pre anamnézu, životný štýl, detailnú funkčnú diagnostiku (SI skĺbenie, klenby, trigger pointy, rozsahy ramena/bedra) a FMS skórovanie (Deep Squat, inline lunge, clearing testy).
+2. **Výstupná diagnostika po OP kolena & členka** (`KneeDiagnosticsForm.tsx`, `AnkleDiagnosticsForm.tsx`): Sledovanie pooperačnej mobility a flexie členkov a kolien. Obsahuje vizuálne asistenčné pomôcky a Dynamo silové reporty.
+3. **Výstupná diagnostika po OP ramena** (`ShoulderDiagnosticsForm.tsx`): 5-krokový pooperačný dotazník pre hornú končatinu (flexia, extenzia, abdukcia, rotácie) a silové ISO testy.
+4. **Zmluva o nájme zdravotníckeho prístroja** (`DeviceLeaseAgreementForm.tsx`): 5-krokový prenájmový formulár s prepojením na identitu Nájomcu, výberom prístroja, splátkovými sumami, statickým právnym textom a digitálnym overením emailového podpisu.
+

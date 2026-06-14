@@ -11,6 +11,12 @@ import { useSportWellData, WorkoutPlan, Appointment, MedicalCard } from "@/hooks
 import FormRenderer from "@/components/common/FormRenderer";
 import Prescription from "@/components/training/Prescription";
 import GdprWizard from "@/components/gdpr/GdprWizard";
+import ComplexDiagnosticsForm from "@/components/diagnostics/ComplexDiagnosticsForm";
+import DiagnosticDetailModal from "@/components/diagnostics/DiagnosticDetailModal";
+import AnkleDiagnosticsForm from "@/components/diagnostics/AnkleDiagnosticsForm";
+import KneeDiagnosticsForm from "@/components/diagnostics/KneeDiagnosticsForm";
+import ShoulderDiagnosticsForm from "@/components/diagnostics/ShoulderDiagnosticsForm";
+import DeviceLeaseAgreementForm from "@/components/diagnostics/DeviceLeaseAgreementForm";
 
 // Utils
 import { generateGdprPdf } from "@/utils/pdfGenerator";
@@ -59,6 +65,8 @@ export default function CompleteSportWellApp() {
     fetchClients,
     hasMoreClients,
     medicalCards,
+    clientRecords,
+    setClientRecords,
     appointments,
     setAppointments,
     auditLogs,
@@ -124,6 +132,7 @@ export default function CompleteSportWellApp() {
   const [newClientLast, setNewClientLast] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
 
   // Late cancellation confirmation
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
@@ -188,6 +197,7 @@ export default function CompleteSportWellApp() {
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
   const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<any>(null);
+  const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<any>(null);
 
   // 4. Client workout plans effect
   useEffect(() => {
@@ -250,6 +260,27 @@ export default function CompleteSportWellApp() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'client_records',
+        },
+        async (payload: any) => {
+          let recordsQuery = supabase
+            .from('client_records')
+            .select('*, profiles_client:client_id(full_name), profiles_creator:created_by(full_name, role), form_templates:template_id(title, category)');
+          if (currentUserProfile.role === 'klient') {
+            recordsQuery = recordsQuery.eq('client_id', currentUserProfile.id);
+          }
+          const { data: dbRecords } = await recordsQuery;
+          if (dbRecords) {
+            setClientRecords(dbRecords);
+            triggerToast('Zoznam diagnostických záznamov bol aktualizovaný v reálnom čase!');
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -266,6 +297,59 @@ export default function CompleteSportWellApp() {
       fetchClients(searchTerm, clientPage, clientPage > 0);
     }
   }, [searchTerm, clientPage, currentUserProfile]);
+
+  useEffect(() => {
+    if (currentUserProfile) {
+      setEditPhone(currentUserProfile.phone || "");
+    }
+  }, [currentUserProfile]);
+
+  const combinedRecords = useMemo(() => {
+    const cards = medicalCards
+      .filter(m => m.client_id === currentUserProfile?.id)
+      .map(m => ({ ...m, recordType: 'medical_card' }));
+      
+    const records = clientRecords
+      .filter(r => r.client_id === currentUserProfile?.id)
+      .map(r => ({
+        id: r.id,
+        client_id: r.client_id,
+        created_by: r.created_by,
+        type: r.form_templates?.category || 'diagnostika',
+        form_data: r.form_data,
+        created_at: r.created_at,
+        recordType: 'client_record',
+        title: r.form_templates?.title
+      }));
+      
+    return [...cards, ...records].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [medicalCards, clientRecords, currentUserProfile]);
+
+  const clientCombinedRecords = useMemo(() => {
+    if (!selectedClientId) return [];
+    const cards = medicalCards
+      .filter(m => m.client_id === selectedClientId)
+      .map(m => ({ ...m, recordType: 'medical_card' }));
+      
+    const records = clientRecords
+      .filter(r => r.client_id === selectedClientId)
+      .map(r => ({
+        id: r.id,
+        client_id: r.client_id,
+        created_by: r.created_by,
+        type: r.form_templates?.category || 'diagnostika',
+        form_data: r.form_data,
+        created_at: r.created_at,
+        recordType: 'client_record',
+        title: r.form_templates?.title
+      }));
+      
+    return [...cards, ...records].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [medicalCards, clientRecords, selectedClientId]);
 
   const handleOnboardingSubmit = async (data: {
     firstName: string;
@@ -1866,23 +1950,42 @@ export default function CompleteSportWellApp() {
                 <div>
                   <h4 className="text-xs font-bold uppercase text-gray-400 mb-2">Diagnostický denník pacienta</h4>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {medicalCards
-                      .filter(m => m.client_id === selectedClient?.id)
-                      .map(m => (
-                        <div key={m.id} className="p-3 bg-brand-off-white/50 border rounded-lg text-xs">
+                    {clientCombinedRecords.length === 0 ? (
+                      <p className="text-gray-500 italic">Zatiaľ žiadne diagnostické záznamy.</p>
+                    ) : (
+                      clientCombinedRecords.map((m: any) => (
+                        <div key={m.id} className="p-3 bg-brand-off-white/50 border rounded-lg text-xs space-y-2">
                           <div className="flex justify-between font-bold text-brand-navy">
-                            <span>{m.type.toUpperCase()} záznam</span>
+                            <span>
+                              {m.recordType === 'medical_card' 
+                                ? (m.type === 'fyzio' ? 'Fyzioterapeutický' : m.type) + ' záznam'
+                                : (m.title || 'Diagnostický záznam')}
+                            </span>
                             <span className="text-gray-400">{new Date(m.created_at).toLocaleDateString()}</span>
                           </div>
-                          <p className="mt-1">{m.form_data?.summary || m.form_data?.field1 || "Prázdny záznam"}</p>
-                          <button
-                            onClick={() => promptPasswordPdf(m)}
-                            className="mt-2 text-brand-cyan hover:underline flex items-center gap-1 font-semibold"
-                          >
-                            🔒 Stiahnuť zaheslované PDF
-                          </button>
+                          <p className="mt-1">
+                            {m.form_data?.summary || 
+                             m.form_data?.conclusionNotes || 
+                             m.form_data?.field1 || 
+                             "Prázdny záznam"}
+                          </p>
+                          <div className="flex gap-4 mt-2">
+                            <button
+                              onClick={() => promptPasswordPdf(m)}
+                              className="text-brand-cyan hover:underline flex items-center gap-1 font-semibold"
+                            >
+                              🔒 Stiahnuť zaheslované PDF
+                            </button>
+                            <button
+                              onClick={() => setSelectedRecordForDetail(m)}
+                              className="text-brand-navy hover:underline flex items-center gap-1 font-semibold"
+                            >
+                              🔍 Zobraziť detail
+                            </button>
+                          </div>
                         </div>
-                      ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -1919,7 +2022,154 @@ export default function CompleteSportWellApp() {
 
               {(() => {
                 const currentTemplate = formTemplates.find(t => t.id === selectedTemplateId);
-                if (!currentTemplate || !currentTemplate.schema) return null;
+                if (!currentTemplate) return null;
+
+                if (
+                  currentTemplate.title === 'Komplexná diagnostika' ||
+                  currentTemplate.id === '64e58c30-683b-431c-8dc1-910308018a9b' ||
+                  currentTemplate.title === 'Základná diagnostika' ||
+                  currentTemplate.id === 'a5f95f57-b364-4543-aa94-33444f8ed2d7'
+                ) {
+                  return (
+                    <div className="space-y-4 border-t pt-4">
+                      <ComplexDiagnosticsForm
+                        selectedClientId={selectedClientId}
+                        creatorId={currentUserProfile?.id || ''}
+                        clients={clients}
+                        onSubmit={async (formData) => {
+                          const success = await submitDiagnosis(
+                            currentUserProfile?.id || '',
+                            selectedClientId,
+                            currentTemplate.id,
+                            formData,
+                            currentUserProfile!
+                          );
+                          return success;
+                        }}
+                        onCancel={() => {
+                          setDynamicFormData({});
+                          // Reset to first active template if possible
+                          const firstTemplate = formTemplates.find(t => t.id !== currentTemplate.id);
+                          setSelectedTemplateId(firstTemplate?.id || '');
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (currentTemplate.title === 'Výstupná diagnostika po OP členkového kĺbu' || currentTemplate.id === '8989c44d-1d24-48b1-a4c9-34bdaa6f3c86') {
+                  return (
+                    <div className="space-y-4 border-t pt-4">
+                      <AnkleDiagnosticsForm
+                        selectedClientId={selectedClientId}
+                        creatorId={currentUserProfile?.id || ''}
+                        clients={clients}
+                        onSubmit={async (formData) => {
+                          const success = await submitDiagnosis(
+                            currentUserProfile?.id || '',
+                            selectedClientId,
+                            currentTemplate.id,
+                            formData,
+                            currentUserProfile!
+                          );
+                          return success;
+                        }}
+                        onCancel={() => {
+                          setDynamicFormData({});
+                          // Reset to first active template if possible
+                          const firstTemplate = formTemplates.find(t => t.id !== '8989c44d-1d24-48b1-a4c9-34bdaa6f3c86');
+                          setSelectedTemplateId(firstTemplate?.id || '');
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (currentTemplate.title === 'Zmluva o nájme zdravotníckeho prístroja' || currentTemplate.id === '82188845-3ee9-48aa-b963-41a365660c8a') {
+                  return (
+                    <div className="space-y-4 border-t pt-4">
+                      <DeviceLeaseAgreementForm
+                        selectedClientId={selectedClientId}
+                        creatorId={currentUserProfile?.id || ''}
+                        clients={clients}
+                        onSubmit={async (formData) => {
+                          const success = await submitDiagnosis(
+                            currentUserProfile?.id || '',
+                            selectedClientId,
+                            currentTemplate.id,
+                            formData,
+                            currentUserProfile!
+                          );
+                          return success;
+                        }}
+                        onCancel={() => {
+                          setDynamicFormData({});
+                          // Reset to first active template if possible
+                          const firstTemplate = formTemplates.find(t => t.id !== '82188845-3ee9-48aa-b963-41a365660c8a');
+                          setSelectedTemplateId(firstTemplate?.id || '');
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (currentTemplate.title === 'Výstupná diagnostika po OP ramena' || currentTemplate.id === '9245db83-954b-40f0-b7a9-5c256379450b') {
+                  return (
+                    <div className="space-y-4 border-t pt-4">
+                      <ShoulderDiagnosticsForm
+                        selectedClientId={selectedClientId}
+                        creatorId={currentUserProfile?.id || ''}
+                        clients={clients}
+                        onSubmit={async (formData) => {
+                          const success = await submitDiagnosis(
+                            currentUserProfile?.id || '',
+                            selectedClientId,
+                            currentTemplate.id,
+                            formData,
+                            currentUserProfile!
+                          );
+                          return success;
+                        }}
+                        onCancel={() => {
+                          setDynamicFormData({});
+                          // Reset to first active template if possible
+                          const firstTemplate = formTemplates.find(t => t.id !== '9245db83-954b-40f0-b7a9-5c256379450b');
+                          setSelectedTemplateId(firstTemplate?.id || '');
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (currentTemplate.title === 'Výstupná diagnostika po OP kolena' || currentTemplate.id === '927fb3ee-6877-4766-ba1b-f454b4e57f2d') {
+                  return (
+                    <div className="space-y-4 border-t pt-4">
+                      <KneeDiagnosticsForm
+                        selectedClientId={selectedClientId}
+                        creatorId={currentUserProfile?.id || ''}
+                        clients={clients}
+                        onSubmit={async (formData) => {
+                          const success = await submitDiagnosis(
+                            currentUserProfile?.id || '',
+                            selectedClientId,
+                            currentTemplate.id,
+                            formData,
+                            currentUserProfile!
+                          );
+                          return success;
+                        }}
+                        onCancel={() => {
+                          setDynamicFormData({});
+                          // Reset to first active template if possible
+                          const firstTemplate = formTemplates.find(t => t.id !== '927fb3ee-6877-4766-ba1b-f454b4e57f2d');
+                          setSelectedTemplateId(firstTemplate?.id || '');
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
+                if (!currentTemplate.schema) return null;
 
                 return (
                   <div className="space-y-4 border-t pt-4">
@@ -2095,15 +2345,18 @@ export default function CompleteSportWellApp() {
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-4">
                     <h2 className="text-xl font-bold text-brand-navy">Moja lekárska a diagnostická karta</h2>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                      {medicalCards.filter(m => m.client_id === currentUserProfile?.id).length === 0 ? (
+                      {combinedRecords.length === 0 ? (
                         <p className="text-gray-500 italic">Zatiaľ nemáte zapísané žiadne diagnostické záznamy.</p>
                       ) : (
-                        medicalCards
-                          .filter(m => m.client_id === currentUserProfile?.id)
-                          .map(m => (
+                        combinedRecords
+                          .map((m: any) => (
                             <div key={m.id} className="p-4 bg-brand-off-white/40 border rounded-xl space-y-3">
                               <div className="flex justify-between items-center border-b pb-2">
-                                <span className="font-bold text-brand-navy text-sm capitalize">{m.type === 'fyzio' ? 'Fyzioterapeutický' : m.type} záznam</span>
+                                <span className="font-bold text-brand-navy text-sm capitalize">
+                                  {m.recordType === 'medical_card' 
+                                    ? (m.type === 'fyzio' ? 'Fyzioterapeutický' : m.type) + ' záznam'
+                                    : (m.title || 'Diagnostický záznam')}
+                                </span>
                                 <span className="text-gray-400 font-mono">{new Date(m.created_at).toLocaleDateString()}</span>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2125,13 +2378,31 @@ export default function CompleteSportWellApp() {
                                     <p className="text-gray-700 bg-brand-cyan/5 border border-brand-cyan/20 p-2.5 rounded-lg">{m.form_data.field2}</p>
                                   </div>
                                 )}
+                                {m.recordType === 'client_record' && m.form_data && 
+                                  Object.entries(m.form_data)
+                                    .filter(([key]) => key !== 'summary' && key !== 'field1' && key !== 'field2')
+                                    .map(([key, val]) => (
+                                      <div key={key}>
+                                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">{key}</strong>
+                                        <p className="text-gray-700">{String(val)}</p>
+                                      </div>
+                                    ))
+                                }
                               </div>
-                              <button
-                                onClick={() => promptPasswordPdf(m)}
-                                className="mt-2 text-brand-cyan hover:underline flex items-center gap-1 font-semibold text-[11px]"
-                              >
-                                🔒 Stiahnuť zaheslované PDF
-                              </button>
+                              <div className="flex gap-4 mt-2">
+                                <button
+                                  onClick={() => promptPasswordPdf(m)}
+                                  className="text-brand-cyan hover:underline flex items-center gap-1 font-semibold text-[11px]"
+                                >
+                                  🔒 Stiahnuť zaheslované PDF
+                                </button>
+                                <button
+                                  onClick={() => setSelectedRecordForDetail(m)}
+                                  className="text-brand-navy hover:underline flex items-center gap-1 font-semibold text-[11px]"
+                                >
+                                  🔍 Zobraziť detail
+                                </button>
+                              </div>
                             </div>
                           ))
                       )}
@@ -2249,33 +2520,81 @@ export default function CompleteSportWellApp() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-4">
-                  <div className="p-4 bg-brand-off-white/40 border rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Meno a priezvisko</strong>
-                      <span className="text-sm font-bold text-brand-navy">{currentUserProfile.full_name}</span>
+                  
+                  {/* Basic information container */}
+                  <div className="p-5 bg-brand-off-white/40 border rounded-xl flex flex-col gap-5">
+                    <div className="flex flex-col sm:flex-row gap-5 border-b pb-4">
+                      <div className="flex-1">
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Meno a priezvisko</strong>
+                        <span className="text-sm font-bold text-brand-navy">{currentUserProfile.full_name}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Prihlasovací e-mail</strong>
+                        <span className="text-sm font-bold text-brand-navy break-all">{currentUserProfile.email || sessionUser?.email || "Nezadaný"}</span>
+                      </div>
+                      <div className="flex-1">
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Telefón</strong>
+                        <span className="text-sm font-bold text-brand-navy">{currentUserProfile.phone || "Nezadané"}</span>
+                      </div>
                     </div>
-                    <div>
-                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Prihlasovací e-mail</strong>
-                      <span className="text-sm font-bold text-brand-navy">{currentUserProfile.email || sessionUser?.email || "Nezadaný"}</span>
-                    </div>
-                    <div>
-                      <strong className="block text-gray-400 uppercase text-[9px] mb-0.5">Telefón</strong>
-                      <span className="text-sm font-bold text-brand-navy">{currentUserProfile.phone || "Nezadané"}</span>
+
+                    {/* Metadata fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                      <div>
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Dátum narodenia</strong>
+                        <span className="text-xs font-semibold text-gray-700">{currentUserProfile.metadata?.birth_date || "Nezadané"}</span>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Adresa trvalého pobytu</strong>
+                        <span className="text-xs font-semibold text-gray-700">{currentUserProfile.metadata?.address || "Nezadané"}</span>
+                      </div>
+                      <div>
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Primárny záujem</strong>
+                        <span className="text-xs font-semibold text-gray-700">{currentUserProfile.metadata?.primary_interest || "Nezadané"}</span>
+                      </div>
+                      <div>
+                        <strong className="block text-gray-400 uppercase text-[9px] mb-1">Podpis GDPR súhlasu</strong>
+                        <span className="text-xs font-semibold text-gray-700">
+                          {currentUserProfile.gdpr_signed_at 
+                            ? new Date(currentUserProfile.gdpr_signed_at).toLocaleDateString('sk-SK') 
+                            : "Nepodpísané"}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <form onSubmit={(e) => { e.preventDefault(); updateProfilePhone(newClientPhone); }} className="p-4 border rounded-xl bg-brand-off-white/20 space-y-3">
-                    <h3 className="font-bold text-brand-navy">Zmena telefónneho čísla</h3>
+                  {/* Consents table */}
+                  <div className="p-5 bg-brand-off-white/40 border rounded-xl space-y-3">
+                    <h3 className="font-bold text-brand-navy text-sm border-b pb-2">Udelené GDPR súhlase</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${currentUserProfile.metadata?.marketing_accepted ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                        <span>E-mail Marketing: <strong>{currentUserProfile.metadata?.marketing_accepted ? 'Aktívny' : 'Neudelený'}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${currentUserProfile.metadata?.meta_accepted ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                        <span>Meta Audiencie: <strong>{currentUserProfile.metadata?.meta_accepted ? 'Aktívny' : 'Neudelený'}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${currentUserProfile.metadata?.diag_accepted ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                        <span>InBody diagnostika: <strong>{currentUserProfile.metadata?.diag_accepted ? 'Aktívny' : 'Neudelený'}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Edit phone form */}
+                  <form onSubmit={(e) => { e.preventDefault(); updateProfilePhone(editPhone); }} className="p-5 border rounded-xl bg-brand-off-white/20 space-y-3">
+                    <h3 className="font-bold text-brand-navy text-sm">Zmena telefónneho čísla</h3>
                     <div className="flex gap-3 max-w-sm">
                       <input
                         type="tel"
                         required
-                        value={newClientPhone}
-                        onChange={(e) => setNewClientPhone(e.target.value)}
-                        className="bg-white border rounded-lg px-3 py-2 outline-none w-full"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="bg-white border rounded-lg px-3 py-2 outline-none w-full min-h-[44px]"
                         placeholder="+421 900 000 000"
                       />
-                      <button type="submit" className="py-2 px-5 bg-brand-cyan text-brand-dark-navy font-bold rounded-lg whitespace-nowrap">
+                      <button type="submit" className="py-2 px-5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl whitespace-nowrap min-h-[44px] flex items-center justify-center cursor-pointer hover:bg-brand-hover-cyan transition-all">
                         Aktualizovať
                       </button>
                     </div>
@@ -2581,6 +2900,13 @@ export default function CompleteSportWellApp() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedRecordForDetail && (
+        <DiagnosticDetailModal
+          record={selectedRecordForDetail}
+          onClose={() => setSelectedRecordForDetail(null)}
+        />
       )}
 
        <footer className="bg-brand-dark-navy text-white/50 text-center py-6 text-xs border-t border-white/10 mt-auto">
