@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export interface FormField {
   id: string;
@@ -24,10 +24,55 @@ export default function FormRenderer({
   onSubmit,
   submitLabel = 'Uložiť záznam do DB',
 }: FormRendererProps) {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    schema.forEach((field) => {
+      if (field.type === 'section_title') return;
+
+      const val = values[field.id];
+
+      // Required check
+      if (field.required) {
+        if (val === undefined || val === null || val === '' || (field.type === 'checkbox' && !val)) {
+          newErrors[field.id] = `Pole "${field.label}" je povinné.`;
+        }
+      }
+
+      // Specific number check
+      if (field.type === 'number' && val !== undefined && val !== null && val !== '') {
+        const num = Number(val);
+        if (isNaN(num)) {
+          newErrors[field.id] = 'Zadajte platné číslo.';
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSubmit) {
-      onSubmit(e);
+    if (validate()) {
+      if (onSubmit) {
+        onSubmit(e);
+      }
+    }
+  };
+
+  const handleFieldChange = (id: string, val: any) => {
+    onChange(id, val);
+    
+    // Clear field-specific error as user types/interacts
+    if (errors[id]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     }
   };
 
@@ -43,6 +88,8 @@ export default function FormRenderer({
             );
           }
 
+          const hasError = !!errors[field.id];
+
           return (
             <div key={field.id} className="space-y-1">
               <label htmlFor={field.id} className="block font-bold text-gray-700">
@@ -55,8 +102,10 @@ export default function FormRenderer({
                   type="text"
                   required={field.required}
                   value={values[field.id] || ''}
-                  onChange={(e) => onChange(field.id, e.target.value)}
-                  className="w-full bg-brand-off-white border p-2 rounded-lg outline-none"
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className={`w-full bg-brand-off-white border p-2 rounded-lg outline-none transition-all ${
+                    hasError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200'
+                  }`}
                   placeholder={field.placeholder || ''}
                 />
               )}
@@ -67,8 +116,10 @@ export default function FormRenderer({
                   type="number"
                   required={field.required}
                   value={values[field.id] || ''}
-                  onChange={(e) => onChange(field.id, e.target.value)}
-                  className="w-full bg-brand-off-white border p-2 rounded-lg outline-none"
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className={`w-full bg-brand-off-white border p-2 rounded-lg outline-none transition-all ${
+                    hasError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200'
+                  }`}
                   placeholder={field.placeholder || ''}
                 />
               )}
@@ -78,8 +129,10 @@ export default function FormRenderer({
                   id={field.id}
                   required={field.required}
                   value={values[field.id] || ''}
-                  onChange={(e) => onChange(field.id, e.target.value)}
-                  className="w-full bg-brand-off-white border p-2 rounded-lg outline-none h-24"
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className={`w-full bg-brand-off-white border p-2 rounded-lg outline-none h-24 transition-all ${
+                    hasError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200'
+                  }`}
                   placeholder={field.placeholder || ''}
                 />
               )}
@@ -89,8 +142,10 @@ export default function FormRenderer({
                   id={field.id}
                   required={field.required}
                   value={values[field.id] || ''}
-                  onChange={(e) => onChange(field.id, e.target.value)}
-                  className="w-full bg-brand-off-white border p-2 rounded-lg outline-none"
+                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                  className={`w-full bg-brand-off-white border p-2 rounded-lg outline-none transition-all ${
+                    hasError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200'
+                  }`}
                 >
                   <option value="">-- Vyberte možnosť --</option>
                   {field.options?.map((opt: string) => (
@@ -107,7 +162,7 @@ export default function FormRenderer({
                     id={field.id}
                     type="checkbox"
                     checked={!!values[field.id]}
-                    onChange={(e) => onChange(field.id, e.target.checked)}
+                    onChange={(e) => handleFieldChange(field.id, e.target.checked)}
                     className="w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                   />
                   <span>{field.label}</span>
@@ -122,7 +177,7 @@ export default function FormRenderer({
                     min="0"
                     max="10"
                     value={values[field.id] !== undefined ? values[field.id] : 5}
-                    onChange={(e) => onChange(field.id, parseInt(e.target.value))}
+                    onChange={(e) => handleFieldChange(field.id, parseInt(e.target.value))}
                     className="w-full accent-brand-cyan"
                   />
                   <div className="flex justify-between text-[10px] text-gray-400 font-semibold px-1">
@@ -133,6 +188,12 @@ export default function FormRenderer({
                     <span>Neznesiteľná bolesť (10)</span>
                   </div>
                 </div>
+              )}
+
+              {hasError && (
+                <span className="text-xs text-red-500 font-semibold mt-0.5 block" aria-live="polite">
+                  {errors[field.id]}
+                </span>
               )}
             </div>
           );

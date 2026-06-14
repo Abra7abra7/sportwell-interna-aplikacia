@@ -56,8 +56,11 @@ export default function CompleteSportWellApp() {
   const {
     clients,
     setClients,
+    fetchClients,
+    hasMoreClients,
     medicalCards,
     appointments,
+    setAppointments,
     auditLogs,
     documents,
     setDocuments,
@@ -112,6 +115,7 @@ export default function CompleteSportWellApp() {
 
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [clientPage, setClientPage] = useState(0);
   const [videoSearch, setVideoSearch] = useState("");
   const [clientFilter, setClientFilter] = useState<'all' | 'gdpr_missing' | 'inactive'>('all');
   
@@ -197,6 +201,72 @@ export default function CompleteSportWellApp() {
     }
   }, []);
 
+  // 5. Supabase Realtime synchronization
+  useEffect(() => {
+    if (!currentUserProfile) return;
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'training_plans',
+        },
+        async (payload: any) => {
+          if (currentUserProfile.role === 'klient' && payload.new && (payload.new as any).client_id === currentUserProfile.id) {
+            // Refetch training plans
+            const { data: dbPlans } = await supabase
+              .from('training_plans')
+              .select('*')
+              .eq('client_id', currentUserProfile.id);
+            if (dbPlans && dbPlans.length > 0) {
+              const combined = dbPlans.flatMap((p: any) => p.plan_data || []);
+              setWorkoutPlans(combined);
+            } else {
+              setWorkoutPlans([]);
+            }
+            triggerToast('Váš domáci plán cvičení bol aktualizovaný v reálnom čase!');
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reservations',
+        },
+        async (payload: any) => {
+          let bookingQuery = supabase.from('reservations').select('*, profiles_client:client_id(full_name), profiles_staff:staff_id(full_name, role)');
+          if (currentUserProfile.role === 'klient') {
+            bookingQuery = bookingQuery.eq('client_id', currentUserProfile.id);
+          }
+          const { data: appts } = await bookingQuery;
+          if (appts) {
+            setAppointments(appts as any);
+            triggerToast('Zoznam rezervácií bol aktualizovaný v reálnom čase!');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserProfile]);
+
+  useEffect(() => {
+    setClientPage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (currentUserProfile && currentUserProfile.role !== "klient") {
+      fetchClients(searchTerm, clientPage, clientPage > 0);
+    }
+  }, [searchTerm, clientPage, currentUserProfile]);
+
   const handleOnboardingSubmit = async (data: {
     firstName: string;
     lastName: string;
@@ -222,13 +292,15 @@ export default function CompleteSportWellApp() {
       diag_accepted: data.diagAccepted,
     };
 
+    const signedAt = new Date().toISOString();
+
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
         full_name: fullName,
         phone: data.phone,
         email: data.email || sessionUser.email,
-        gdpr_signed_at: new Date().toISOString(),
+        gdpr_signed_at: signedAt,
         metadata: metadataObj
       })
       .eq("id", sessionUser.id);
@@ -238,10 +310,57 @@ export default function CompleteSportWellApp() {
       return;
     }
 
+    // Generate GDPR PDF asynchronously
+    try {
+      const doc = generateGdprPdf({
+        full_name: fullName,
+        email: data.email || sessionUser.email,
+        phone: data.phone,
+        gdpr_signed_at: signedAt,
+        metadata: { gdpr_version: "v3.0" }
+      });
+      const blob = doc.output("blob");
+      
+      // Upload to Supabase Storage bucket 'gdpr'
+      const { error: uploadError } = await supabase.storage
+        .from("gdpr")
+        .upload(`gdpr_${sessionUser.id}.pdf`, blob, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        triggerToast(`Chyba pri nahrávaní PDF súhlasu: ${uploadError.message}`);
+      }
+    } catch (pdfErr: any) {
+      triggerToast(`Chyba generovania PDF: ${pdfErr.message || pdfErr}`);
+    }
+
+    // Insert Document Record
     await supabase.from("documents").insert({
       client_id: sessionUser.id,
       file_name: `GDPR_Suhlas_${fullName.replace(/\s+/g, '_')}.pdf`,
       storage_path: `gdpr/gdpr_${sessionUser.id}.pdf`
+    });
+
+    // Write Security Audit Log
+    await supabase.from("audit_logs").insert({
+      user_id: sessionUser.id,
+      table_name: "profiles",
+      action: "GDPR_SIGN",
+      record_id: sessionUser.id,
+      old_data: null,
+      new_data: {
+        gdpr_signed_at: signedAt,
+        gdpr_version: "v3.0",
+        ip_address: "127.0.0.1",
+        user_agent: typeof window !== "undefined" ? window.navigator.userAgent : "Server",
+        consents: {
+          marketing_accepted: data.marketingAccepted,
+          meta_accepted: data.metaAccepted,
+          diag_accepted: data.diagAccepted,
+        }
+      }
     });
 
     triggerToast("Registrácia a súhlas s GDPR boli úspešne uložené!");
@@ -409,6 +528,8 @@ export default function CompleteSportWellApp() {
       e_signature_code: signatureCode
     };
 
+    const signedAt = new Date().toISOString();
+
     const { error: profileError } = await supabase
       .from("profiles")
       .upsert({
@@ -417,7 +538,7 @@ export default function CompleteSportWellApp() {
         full_name: fullName,
         phone: onbPhone,
         email: emailToUse,
-        gdpr_signed_at: new Date().toISOString(),
+        gdpr_signed_at: signedAt,
         metadata: metadataObj
       });
 
@@ -428,6 +549,52 @@ export default function CompleteSportWellApp() {
     }
 
     const docName = publicForm === 'gdpr' ? `GDPR_Suhlas_${fullName.replace(/\s+/g, '_')}.pdf` : `Vstupna_Anamneza_${fullName.replace(/\s+/g, '_')}.pdf`;
+    
+    // Generate and upload GDPR PDF if publicForm is 'gdpr'
+    if (publicForm === 'gdpr') {
+      try {
+        const doc = generateGdprPdf({
+          full_name: fullName,
+          email: emailToUse,
+          phone: onbPhone,
+          gdpr_signed_at: signedAt,
+          metadata: { gdpr_version: "v3.0" }
+        });
+        const blob = doc.output("blob");
+        const { error: uploadError } = await supabase.storage
+          .from("gdpr")
+          .upload(`gdpr_${userId}.pdf`, blob, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        if (uploadError) {
+          triggerToast(`Chyba pri nahrávaní PDF súhlasu: ${uploadError.message}`);
+        }
+      } catch (pdfErr: any) {
+        triggerToast(`Chyba generovania PDF: ${pdfErr.message || pdfErr}`);
+      }
+
+      // Write Security Audit Log
+      await supabase.from("audit_logs").insert({
+        user_id: userId,
+        table_name: "profiles",
+        action: "GDPR_SIGN",
+        record_id: userId,
+        old_data: null,
+        new_data: {
+          gdpr_signed_at: signedAt,
+          gdpr_version: "v3.0",
+          ip_address: "127.0.0.1",
+          user_agent: typeof window !== "undefined" ? window.navigator.userAgent : "Server",
+          consents: {
+            marketing_accepted: onbMarketingAccepted,
+            meta_accepted: onbMetaAccepted,
+            diag_accepted: onbDiagAccepted,
+          }
+        }
+      });
+    }
+
     await supabase.from("documents").insert({
       client_id: userId,
       file_name: docName,
@@ -1669,6 +1836,15 @@ export default function CompleteSportWellApp() {
                     </button>
                   ))}
                 </div>
+
+                {hasMoreClients && (
+                  <button
+                    onClick={() => setClientPage(prev => prev + 1)}
+                    className="w-full mt-2 py-2 border border-brand-navy text-brand-navy rounded-xl text-xs hover:bg-gray-50 font-bold min-h-[44px]"
+                  >
+                    Načítať ďalších
+                  </button>
+                )}
               </div>
 
               <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-200/50 space-y-6">
@@ -2281,21 +2457,47 @@ export default function CompleteSportWellApp() {
 
       {/* Late Cancellation dialog */}
       {cancelTargetId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white text-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border">
-            <h3 className="text-lg font-bold text-brand-navy mb-2">Potvrdiť storno termínu</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020C1B]/90 backdrop-blur-md p-4">
+          <div className="glass-panel-dark text-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-white/10 space-y-4">
+            <h3 className="text-lg font-bold text-brand-cyan mb-2">Potvrdiť storno termínu</h3>
+            
             {isLateCancel ? (
-              <p className="text-xs text-red-600 font-semibold mb-4 bg-red-50 p-3 rounded-lg border border-red-200">
-                ⚠️ Upozornenie: Tento termín začína o menej ako 24 hodín. Platba prepadne v prospech centra.
-              </p>
+              <div className="text-xs text-red-300 bg-red-950/40 p-4 rounded-xl border border-red-500/30 space-y-2">
+                <span className="font-bold flex items-center gap-1.5 text-red-400">
+                  ⚠️ Upozornenie o neskorom stornovaní
+                </span>
+                <p className="leading-relaxed">
+                  Tento termín začína o menej ako 24 hodín. V súlade so storno podmienkami SportWell platba prepadá v prospech centra a bude vám zaúčtovaný storno poplatok.
+                </p>
+              </div>
             ) : (
-              <p className="text-xs text-gray-600 mb-4">
-                Bezplatné storno rezervácie. Pokračovať?
-              </p>
+              <div className="text-xs text-gray-300 bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
+                <span className="font-semibold text-brand-cyan">
+                  ✓ Bezplatné storno rezervácie
+                </span>
+                <p className="leading-relaxed">
+                  Rezerváciu rušíte viac ako 24 hodín pred jej začiatkom. Zrušenie termínu prebehne bez akýchkoľvek poplatkov.
+                </p>
+              </div>
             )}
-            <div className="flex gap-3 justify-end text-xs">
-              <button onClick={() => setCancelTargetId(null)} className="px-4 py-2 border rounded-xl hover:bg-gray-100 font-bold">Naspäť</button>
-              <button onClick={executeCancel} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold">Potvrdiť storno</button>
+            
+            <div className="flex gap-3 justify-end text-xs pt-2">
+              <button 
+                onClick={() => setCancelTargetId(null)} 
+                className="px-5 py-2.5 bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all rounded-xl font-bold min-h-[44px] flex items-center justify-center cursor-pointer"
+              >
+                Naspäť
+              </button>
+              <button 
+                onClick={executeCancel} 
+                className={`px-5 py-2.5 rounded-xl font-bold min-h-[44px] flex items-center justify-center transition-all cursor-pointer ${
+                  isLateCancel 
+                    ? "bg-red-600 hover:bg-red-700 text-white border border-red-500" 
+                    : "bg-brand-cyan text-brand-dark-navy hover:bg-brand-hover-cyan"
+                }`}
+              >
+                Potvrdiť storno
+              </button>
             </div>
           </div>
         </div>

@@ -56,6 +56,7 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
   const supabase = createClient();
 
   const [clients, setClients] = useState<ClientProfile[]>([]);
+  const [hasMoreClients, setHasMoreClients] = useState(true);
   const [medicalCards, setMedicalCards] = useState<MedicalCard[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -64,11 +65,41 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
   const [exercises, setExercises] = useState<any[]>([]);
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
 
+  const fetchClients = async (search: string = '', page: number = 0, append: boolean = false) => {
+    let query = supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name', { ascending: true });
+
+    if (search.trim()) {
+      query = query.ilike('full_name', `%${search.trim()}%`);
+    }
+
+    const pageSize = 20;
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+
+    const { data, error } = await query;
+    if (error) {
+      triggerToast(`Chyba načítania klientov: ${error.message}`);
+      return;
+    }
+
+    if (data) {
+      if (append) {
+        setClients((prev) => [...prev, ...data]);
+      } else {
+        setClients(data);
+      }
+      setHasMoreClients(data.length === pageSize);
+    }
+  };
+
   const loadData = async (profile: ClientProfile) => {
     // 1. Fetch Clients list (for employees)
     if (profile.role !== 'klient') {
-      const { data: profilesList } = await supabase.from('profiles').select('*');
-      if (profilesList) setClients(profilesList);
+      await fetchClients('', 0, false);
 
       const { data: audits } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
       if (audits) setAuditLogs(audits);
@@ -287,6 +318,8 @@ export function useSportWellData(triggerToast: (msg: string) => void) {
   return {
     clients,
     setClients,
+    fetchClients,
+    hasMoreClients,
     medicalCards,
     setMedicalCards,
     appointments,

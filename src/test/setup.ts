@@ -20,6 +20,7 @@ vi.mock('jspdf', () => {
     setLineWidth = vi.fn();
     line = vi.fn();
     roundedRect = vi.fn();
+    output = vi.fn().mockReturnValue(new Blob(['pdf content'], { type: 'application/pdf' }));
     save = vi.fn();
   }
   return {
@@ -64,6 +65,7 @@ const mockSupabase = {
   storage: {
     from: vi.fn().mockReturnValue({
       createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'http://signed-url.com' }, error: null }),
+      upload: vi.fn().mockResolvedValue({ data: { path: 'uploaded_path' }, error: null }),
     }),
   },
 };
