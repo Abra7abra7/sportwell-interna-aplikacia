@@ -1,0 +1,389 @@
+import React, { useState } from 'react';
+
+export interface ClientProfile {
+  id: string;
+  role: 'admin' | 'trener' | 'klient';
+  full_name: string;
+  email?: string;
+  phone: string;
+  gdpr_signed_at: string | null;
+  created_at?: string;
+  metadata: {
+    marketing_opt_in?: boolean;
+    fms_inbody_opt_in?: boolean;
+    meta_lookalike_opt_in?: boolean;
+    [key: string]: any;
+  };
+}
+
+interface GdprWizardProps {
+  sessionUser: any;
+  currentUserProfile: ClientProfile;
+  onSubmit: (data: {
+    firstName: string;
+    lastName: string;
+    birthDate: string;
+    address: string;
+    email: string;
+    phone: string;
+    primaryInterest: string;
+    marketingAccepted: boolean;
+    metaAccepted: boolean;
+    diagAccepted: boolean;
+  }) => Promise<void>;
+  onSignOut: () => void;
+}
+
+export default function GdprWizard({
+  sessionUser,
+  currentUserProfile,
+  onSubmit,
+  onSignOut,
+}: GdprWizardProps) {
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onbFirstName, setOnbFirstName] = useState('');
+  const [onbLastName, setOnbLastName] = useState('');
+  const [onbBirthDate, setOnbBirthDate] = useState('');
+  const [onbAddress, setOnbAddress] = useState('');
+  const [onbEmail, setOnbEmail] = useState(currentUserProfile.email || sessionUser?.email || '');
+  const [onbPhone, setOnbPhone] = useState(currentUserProfile.phone || '');
+  const [onbInterest, setOnbInterest] = useState('Fyzioterapia');
+
+  const [onbPrivacyAccepted, setOnbPrivacyAccepted] = useState(false);
+  const [onbTermsAccepted, setOnbTermsAccepted] = useState(false);
+  const [onbMarketingAccepted, setOnbMarketingAccepted] = useState(false);
+  const [onbMetaAccepted, setOnbMetaAccepted] = useState(false);
+  const [onbDiagAccepted, setOnbDiagAccepted] = useState(false);
+
+  const [showPrivacyTerms, setShowPrivacyTerms] = useState(false);
+  const [showBookingTerms, setShowBookingTerms] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onbPrivacyAccepted || !onbTermsAccepted) return;
+
+    setIsSaving(true);
+    try {
+      await onSubmit({
+        firstName: onbFirstName,
+        lastName: onbLastName,
+        birthDate: onbBirthDate,
+        address: onbAddress,
+        email: onbEmail,
+        phone: onbPhone,
+        primaryInterest: onbInterest,
+        marketingAccepted: onbMarketingAccepted,
+        metaAccepted: onbMetaAccepted,
+        diagAccepted: onbDiagAccepted,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020C1B]/95 backdrop-blur-md p-4 overflow-y-auto">
+      <div className="glass-panel-dark text-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-white/10 space-y-6 my-8">
+        <div className="text-center">
+          <div className="inline-block mb-2 overflow-hidden rounded-xl bg-black border border-white/10 p-1">
+            <img src="/logo.png" alt="SportWell Logo" className="w-12 h-12 object-contain" />
+          </div>
+          <h2 className="text-2xl font-bold">Aktivácia profilu</h2>
+          <p className="text-xs text-gray-300 mt-1">
+            Krok {onboardingStep} z 3:{' '}
+            {onboardingStep === 1 ? 'Osobné údaje' : onboardingStep === 2 ? 'Povinné zmluvné doložky' : 'Dobrovoľné súhlasy'}
+          </p>
+
+          <div className="w-full bg-white/10 h-1 rounded-full mt-4 overflow-hidden">
+            <div
+              className="bg-brand-cyan h-1 transition-all duration-300"
+              style={{ width: `${(onboardingStep / 3) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* STEP 1: IDENTITY */}
+        {onboardingStep === 1 && (
+          <form onSubmit={(e) => { e.preventDefault(); setOnboardingStep(2); }} className="space-y-4 text-xs">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="firstName" className="block text-gray-300 font-semibold mb-1">Meno <span className="text-red-500">*</span></label>
+                <input
+                  id="firstName"
+                  type="text"
+                  required
+                  value={onbFirstName}
+                  onChange={(e) => setOnbFirstName(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  placeholder="Ján"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-gray-300 font-semibold mb-1">Priezvisko <span className="text-red-500">*</span></label>
+                <input
+                  id="lastName"
+                  type="text"
+                  required
+                  value={onbLastName}
+                  onChange={(e) => setOnbLastName(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  placeholder="Novák"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="birthDate" className="block text-gray-300 font-semibold mb-1">Dátum narodenia <span className="text-red-500">*</span></label>
+                <input
+                  id="birthDate"
+                  type="date"
+                  required
+                  value={onbBirthDate}
+                  onChange={(e) => setOnbBirthDate(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="block text-gray-300 font-semibold mb-1">Telefónne číslo <span className="text-red-500">*</span></label>
+                <input
+                  id="phone"
+                  type="tel"
+                  required
+                  value={onbPhone}
+                  onChange={(e) => setOnbPhone(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  placeholder="+421 900 000 000"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="address" className="block text-gray-300 font-semibold mb-1">Trvalý pobyt / Adresa <span className="text-red-500">*</span></label>
+              <input
+                id="address"
+                type="text"
+                required
+                value={onbAddress}
+                onChange={(e) => setOnbAddress(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                placeholder="Hlavná 123, 811 01 Bratislava"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-gray-300 font-semibold mb-1">Kontaktný e-mail <span className="text-red-500">*</span></label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={onbEmail}
+                onChange={(e) => setOnbEmail(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                placeholder="meno@domena.sk"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="interest" className="block text-gray-300 font-semibold mb-1">Primárny záujem o služby</label>
+              <select
+                id="interest"
+                value={onbInterest}
+                onChange={(e) => setOnbInterest(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+              >
+                <option value="Fyzioterapia">Fyzioterapia</option>
+                <option value="Funkčný tréning">Funkčný tréning</option>
+                <option value="Masáž">Masáž</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors"
+            >
+              Pokračovať na súhlasy
+            </button>
+          </form>
+        )}
+
+        {/* STEP 2: REQUIRED CONSENTS */}
+        {onboardingStep === 2 && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-white/5 border border-white/10 rounded-xl leading-relaxed text-gray-300">
+              <p>
+                Spoloční prevádzkovatelia <strong>SportWell s.r.o.</strong> a <strong>SportWell rehab s.r.o.</strong> vyžadujú
+                pre poskytovanie služieb nasledujúce súhlasy:
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="border border-white/10 rounded-xl p-3 bg-white/5">
+                <label htmlFor="privacyConsent" className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    id="privacyConsent"
+                    type="checkbox"
+                    checked={onbPrivacyAccepted}
+                    onChange={(e) => setOnbPrivacyAccepted(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                  />
+                  <span className="font-semibold">
+                    Súhlasím so spracovaním citlivých zdravotných údajov pre diagnózu <span className="text-brand-cyan">(Povinné)</span>
+                  </span>
+                </label>
+                <button
+                  onClick={() => setShowPrivacyTerms(!showPrivacyTerms)}
+                  className="text-[10px] text-brand-cyan hover:underline mt-2 block"
+                >
+                  {showPrivacyTerms ? 'Zobraziť menej' : 'Zobraziť viac informácií'}
+                </button>
+                {showPrivacyTerms && (
+                  <div className="mt-2 text-[10px] text-gray-400 bg-black/30 p-2.5 rounded-lg border border-white/5 max-h-32 overflow-y-auto space-y-2 leading-relaxed">
+                    <p>
+                      Zaväzujete sa poskytnúť pravdivé údaje o vašom zdravotnom stave za účelom zostavenia rehabilitačného alebo
+                      tréningového plánu.
+                    </p>
+                    <p>
+                      Údaje spracovávame po dobu poskytovania služieb a archivujeme po dobu vyžadovanú legislatívou SR o
+                      zdravotnej starostlivosti.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border border-white/10 rounded-xl p-3 bg-white/5">
+                <label htmlFor="termsConsent" className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    id="termsConsent"
+                    type="checkbox"
+                    checked={onbTermsAccepted}
+                    onChange={(e) => setOnbTermsAccepted(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                  />
+                  <span className="font-semibold">
+                    Súhlasím s podmienkami a VOP rezervačného systému <span className="text-brand-cyan">(Povinné)</span>
+                  </span>
+                </label>
+                <button
+                  onClick={() => setShowBookingTerms(!showBookingTerms)}
+                  className="text-[10px] text-brand-cyan hover:underline mt-2 block"
+                >
+                  {showBookingTerms ? 'Zobraziť menej' : 'Zobraziť viac informácií'}
+                </button>
+                {showBookingTerms && (
+                  <div className="mt-2 text-[10px] text-gray-400 bg-black/30 p-2.5 rounded-lg border border-white/5 max-h-32 overflow-y-auto space-y-2 leading-relaxed">
+                    <p>
+                      Rezervácie sú záväzné. Zrušenie rezervácie bez poplatku je možné najneskôr 24 hodín pred termínom
+                      rehabilitácie.
+                    </p>
+                    <p>
+                      Pri neskorom storne rezervácie si centrum vyhradzuje právo na storno poplatok v plnej výške zálohy alebo
+                      prepadnutie kreditu.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setOnboardingStep(1)}
+                className="w-1/3 py-2 px-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors"
+              >
+                Späť
+              </button>
+              <button
+                disabled={!onbPrivacyAccepted || !onbTermsAccepted}
+                onClick={() => setOnboardingStep(3)}
+                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors disabled:opacity-50"
+              >
+                Pokračovať
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: OPTIONAL CONSENTS */}
+        {onboardingStep === 3 && (
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <div className="p-3 bg-white/5 border border-white/10 rounded-xl leading-relaxed text-gray-300">
+              <p>
+                Môžete udeliť aj dobrovoľné súhlasy na skvalitnenie našich služieb. Tieto súhlasy nie sú povinné a môžete ich
+                kedykoľvek odvolať:
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label htmlFor="marketingOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
+                <input
+                  id="marketingOptIn"
+                  type="checkbox"
+                  checked={onbMarketingAccepted}
+                  onChange={(e) => setOnbMarketingAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                />
+                <span>Súhlasím so zasielaním noviniek a akcií na e-mail (Ecomail marketing)</span>
+              </label>
+
+              <label htmlFor="metaOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
+                <input
+                  id="metaOptIn"
+                  type="checkbox"
+                  checked={onbMetaAccepted}
+                  onChange={(e) => setOnbMetaAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                />
+                <span>
+                  Súhlasím so zdieľaním e-mailovej adresy s Meta Platforms pre hľadanie podobných publik (Lookalike Audiences)
+                </span>
+              </label>
+
+              <label htmlFor="diagOptIn" className="flex items-start gap-3 cursor-pointer border border-white/10 rounded-xl p-3 bg-white/5">
+                <input
+                  id="diagOptIn"
+                  type="checkbox"
+                  checked={onbDiagAccepted}
+                  onChange={(e) => setOnbDiagAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                />
+                <span>
+                  Súhlasím so spracovaním a prepojením meraní zo vstupných prístrojov (InBody, FMS diagnostika)
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => setOnboardingStep(2)}
+                className="w-1/3 py-2 px-4 border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                Späť
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="flex-1 py-2.5 bg-brand-cyan text-brand-dark-navy font-bold rounded-xl hover:bg-brand-hover-cyan transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? 'Ukladám…' : 'Dokončiť registráciu'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div className="text-center pt-2 border-t border-white/10">
+          <button
+            onClick={onSignOut}
+            className="text-xs text-red-400 hover:text-red-300 font-semibold transition-colors"
+          >
+            Odhlásiť sa a vyplniť neskôr
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
