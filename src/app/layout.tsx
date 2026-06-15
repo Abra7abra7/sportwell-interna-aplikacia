@@ -19,9 +19,6 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "SportWell",
   },
-  icons: {
-    apple: "/apple-icon.png",
-  },
   formatDetection: {
     telephone: false,
   },
