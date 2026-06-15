@@ -30,7 +30,6 @@ interface AuthContextType {
   magicLinkSent: boolean;
   authInitialized: boolean;
   handleAuthSubmit: (e: React.FormEvent) => Promise<void>;
-  handleVerifyOtp: (e: React.FormEvent, token: string) => Promise<void>;
   handleSignOut: () => Promise<void>;
   updateProfilePhone: (phoneValue: string) => Promise<void>;
   fetchUserProfile: (userId: string) => Promise<void>;
@@ -143,34 +142,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { error } = await supabase.auth.signInWithOtp({
       email: authEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (error) {
       defaultTriggerToast(`Chyba: ${error.message}`);
     } else {
       setMagicLinkSent(true);
-      defaultTriggerToast('Overovací kód bol odoslaný na váš e-mail.');
+      defaultTriggerToast('Overovací odkaz bol odoslaný na váš e-mail.');
     }
     
-    setIsAuthLoading(false);
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent, token: string) => {
-    e.preventDefault();
-    setIsAuthLoading(true);
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: authEmail,
-      token,
-      type: 'email',
-    });
-
-    if (error) {
-      defaultTriggerToast(`Neplatný kód: ${error.message}`);
-    } else {
-      defaultTriggerToast('Prihlásenie bolo úspešné.');
-    }
-
     setIsAuthLoading(false);
   };
 
@@ -225,7 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     magicLinkSent,
     authInitialized,
     handleAuthSubmit,
-    handleVerifyOtp,
     handleSignOut,
     updateProfilePhone,
     fetchUserProfile,
