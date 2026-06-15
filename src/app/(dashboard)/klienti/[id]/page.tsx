@@ -47,7 +47,7 @@ export default function ClientProfilePage() {
         .from('client_records')
         .select(`
           *,
-          form_templates(title)
+          form_templates(title, schema)
         `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
@@ -119,6 +119,37 @@ export default function ClientProfilePage() {
     } catch (error) {
       console.error("Error downloading document:", error);
       alert("Chyba pri sťahovaní súboru");
+    }
+  };
+
+  const downloadEncryptedPdf = async (elementId: string, filename: string) => {
+    try {
+      const { generatePdfBlob } = await import('@/utils/pdfGenerator');
+      let password = "sportwell";
+      if (clientProfile?.metadata?.birthDate) {
+        const d = new Date(clientProfile.metadata.birthDate);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        password = `${day}${month}${year}`;
+      }
+      
+      const blob = await generatePdfBlob(elementId, password);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert("Chyba pri generovaní PDF.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Chyba pri generovaní PDF.");
     }
   };
 
@@ -262,16 +293,39 @@ export default function ClientProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {records.map(record => {
-                    // Helper pre formátovanie kľúčov (otázok)
-                    const formatKey = (key: string) => {
+                    // Prehľadá schema.fields a vráti label ak existuje
+                    const getFieldLabel = (key: string) => {
+                      if (!record.form_templates?.schema?.fields) {
+                        const cleaned = key.replace(/^q\d+_/, '');
+                        return cleaned.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+                      }
+                      
+                      const field = record.form_templates.schema.fields.find((f: any) => f.id === key);
+                      if (field && field.label) return field.label;
+                      
                       const cleaned = key.replace(/^q\d+_/, '');
                       return cleaned.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
                     };
 
-                    // Helper pre formátovanie odpovedí
                     const renderValue = (val: any) => {
                       if (!val) return <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Nezadané</span>;
                       if (Array.isArray(val)) return val.join(", ");
+                      
+                      // Check if it's an uploaded file object
+                      if (typeof val === 'object' && val !== null && val.fileName && val.path) {
+                        if (val.type?.startsWith('image/')) {
+                          const { data: { publicUrl } } = supabase.storage.from('client_documents').getPublicUrl(val.path);
+                          return (
+                            <div className="mt-2">
+                              <img src={publicUrl} alt={val.fileName} className="max-h-48 rounded-lg border object-contain bg-white" />
+                              <p className="text-xs text-gray-500 mt-1">{val.fileName}</p>
+                            </div>
+                          );
+                        } else {
+                          return <span className="font-medium text-brand-cyan">📄 Priložený súbor: {val.fileName}</span>;
+                        }
+                      }
+
                       if (typeof val === 'object' && val !== null) {
                         return (
                           <ul className="list-disc pl-5 mt-1 space-y-1 text-sm">
@@ -310,7 +364,7 @@ export default function ClientProfilePage() {
                           <div className="mt-4 pt-4 border-t border-gray-100">
                             <div className="flex justify-end mb-4">
                               <button 
-                                onClick={() => generatePdfFromElement(`pdf-record-${record.id}`, `${templateTitle.replace(/\s+/g, '_')}_${clientProfile.full_name.replace(/\s+/g, '_')}.pdf`)}
+                                onClick={() => downloadEncryptedPdf(`pdf-record-${record.id}`, `${templateTitle.replace(/\s+/g, '_')}_${clientProfile.full_name.replace(/\s+/g, '_')}.pdf`)}
                                 className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded font-medium flex items-center gap-2"
                               >
                                 <span>📄</span> Stiahnuť PDF
@@ -320,7 +374,7 @@ export default function ClientProfilePage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {Object.entries(record.form_data || {}).map(([key, val]) => (
                                 <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                  <p className="text-xs font-bold text-brand-navy mb-1 uppercase tracking-wide">{formatKey(key)}</p>
+                                  <p className="text-xs font-bold text-brand-navy mb-1 uppercase tracking-wide">{getFieldLabel(key)}</p>
                                   <div className="text-sm text-gray-800">{renderValue(val)}</div>
                                 </div>
                               ))}
@@ -358,7 +412,7 @@ export default function ClientProfilePage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
                               {Object.entries(record.form_data || {}).map(([key, val]) => (
                                 <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
-                                  <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#475569', margin: '0 0 4px 0' }}>{formatKey(key)}</p>
+                                  <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#475569', margin: '0 0 4px 0' }}>{getFieldLabel(key)}</p>
                                   <div style={{ margin: 0, color: '#0f172a' }}>{renderValue(val)}</div>
                                 </div>
                               ))}

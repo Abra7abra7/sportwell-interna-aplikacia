@@ -28,6 +28,7 @@ interface AuthContextType {
   setAuthEmail: React.Dispatch<React.SetStateAction<string>>;
   isAuthLoading: boolean;
   magicLinkSent: boolean;
+  authInitialized: boolean;
   handleAuthSubmit: (e: React.FormEvent) => Promise<void>;
   handleSignOut: () => Promise<void>;
   updateProfilePhone: (phoneValue: string) => Promise<void>;
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authEmail, setAuthEmail] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   const [registerFullName, setRegisterFullName] = useState('');
   const [registerVerifyPending, setRegisterVerifyPending] = useState(false);
@@ -56,11 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setSessionUser(session.user);
-      fetchUserProfile(session.user);
+      await fetchUserProfile(session.user);
     } else {
       setSessionUser(null);
       setCurrentUserProfile(null);
     }
+    setAuthInitialized(true);
   };
 
   const fetchUserProfile = async (user: any) => {
@@ -203,6 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthEmail,
     isAuthLoading,
     magicLinkSent,
+    authInitialized,
     handleAuthSubmit,
     handleSignOut,
     updateProfilePhone,

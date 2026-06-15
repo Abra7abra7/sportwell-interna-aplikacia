@@ -14,6 +14,8 @@ export default function KlientiPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
 
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
   useEffect(() => {
     if (currentUserProfile && currentUserProfile.role !== "klient") {
       fetchClients(searchTerm, 0);
@@ -28,7 +30,7 @@ export default function KlientiPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h2 className="text-2xl font-bold text-brand-navy">Správa Klientov</h2>
-        <div className="mt-4 md:mt-0 flex gap-4 w-full md:w-auto">
+        <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <input
               type="text"
@@ -38,6 +40,14 @@ export default function KlientiPage() {
               className="w-full pl-4 pr-10 py-2 border rounded-full focus:ring-brand-cyan focus:border-brand-cyan shadow-sm"
             />
           </div>
+          {currentUserProfile?.role === 'admin' && (
+            <button
+              onClick={() => setIsInviteModalOpen(true)}
+              className="bg-brand-cyan text-brand-navy px-4 py-2 rounded-full font-bold shadow hover:bg-[#00d0e0] transition-colors whitespace-nowrap"
+            >
+              + Pozvať klienta
+            </button>
+          )}
         </div>
       </div>
 
@@ -56,6 +66,7 @@ export default function KlientiPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email / Telefón</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priradení zamestnanci</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GDPR Stav</th>
+                {currentUserProfile?.role === 'admin' && <th className="px-6 py-3"></th>}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -128,6 +139,98 @@ export default function KlientiPage() {
           currentUserProfile={currentUserProfile}
         />
       )}
+
+      {isInviteModalOpen && (
+        <InviteClientModal onClose={() => setIsInviteModalOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function InviteClientModal({ onClose }: { onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    
+    setStatus("loading");
+    const supabase = createClient();
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+      setStatus("success");
+      
+      setTimeout(() => {
+        onClose();
+      }, 3000);
+    } catch (err) {
+      console.error(err);
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-xl font-bold text-brand-navy mb-4">Pozvať nového klienta</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Zadajte e-mailovú adresu klienta. Systém mu odošle magický odkaz (Magic Link), 
+          ktorým sa jedným klikom prihlási a bude presmerovaný rovno na GDPR formulár a vytvorenie účtu.
+        </p>
+        
+        {status === "success" ? (
+          <div className="p-4 bg-green-50 text-green-700 rounded-lg text-center font-medium border border-green-200">
+            ✅ Pozvánka bola úspešne odoslaná!
+          </div>
+        ) : (
+          <form onSubmit={handleInvite}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail klienta</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-brand-cyan focus:border-brand-cyan"
+                placeholder="klient@email.sk"
+              />
+            </div>
+            
+            {status === "error" && (
+              <div className="mb-4 text-sm text-red-500 font-medium">
+                Nastala chyba pri odosielaní pozvánky. Skúste to znova.
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
+                disabled={status === "loading"}
+              >
+                Zrušiť
+              </button>
+              <button
+                type="submit"
+                disabled={status === "loading" || !email}
+                className="px-4 py-2 bg-brand-cyan hover:bg-[#00d0e0] text-brand-navy rounded-lg font-bold transition-colors disabled:opacity-50"
+              >
+                {status === "loading" ? "Odosielam..." : "Odoslať pozvánku"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

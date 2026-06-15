@@ -6,7 +6,7 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { sessionUser, currentUserProfile, handleSignOut } = useAuthContext();
+  const { sessionUser, currentUserProfile, handleSignOut, authInitialized } = useAuthContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -14,21 +14,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => {
-    if (mounted && !sessionUser) {
+    if (mounted && authInitialized && !sessionUser) {
       router.push("/login");
     }
-  }, [mounted, sessionUser, router]);
+  }, [mounted, authInitialized, sessionUser, router]);
 
   const isClient = currentUserProfile?.role === "klient";
   const pathname = usePathname();
 
   useEffect(() => {
-    if (mounted && isClient && !currentUserProfile?.gdpr_signed_at && pathname !== '/gdpr') {
+    if (mounted && authInitialized && isClient && !currentUserProfile?.gdpr_signed_at && pathname !== '/gdpr') {
       router.push('/gdpr');
     }
-  }, [mounted, isClient, currentUserProfile?.gdpr_signed_at, pathname, router]);
+  }, [mounted, authInitialized, isClient, currentUserProfile?.gdpr_signed_at, pathname, router]);
 
-  if (!mounted || !sessionUser || !currentUserProfile) {
+  if (!mounted || !authInitialized || !sessionUser || !currentUserProfile) {
     return <div className="min-h-screen flex items-center justify-center bg-brand-dark-navy text-white">Načítavam...</div>;
   }
 
@@ -48,7 +48,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { id: "klienti", label: "Klienti", href: "/klienti" },
         { id: "diagnostika", label: "Diagnostika", href: "/diagnostika" },
         { id: "plan", label: "Tréningové Plány", href: "/plan" },
-        ...(currentUserProfile.role === "admin" ? [{ id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" }] : []),
+        ...(currentUserProfile.role === "admin" ? [
+          { id: "sablony", label: "Šablóny a Formuláre", href: "/sablony" },
+          { id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" }
+        ] : []),
       ];
 
   return (
