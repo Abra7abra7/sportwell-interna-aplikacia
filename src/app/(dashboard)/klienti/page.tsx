@@ -121,7 +121,10 @@ export default function KlientiPage() {
       {selectedClient && (
         <AssignmentModal
           client={selectedClient}
-          onClose={() => setSelectedClient(null)}
+          onClose={() => {
+            setSelectedClient(null);
+            fetchClients(searchTerm, 0);
+          }}
           currentUserProfile={currentUserProfile}
         />
       )}

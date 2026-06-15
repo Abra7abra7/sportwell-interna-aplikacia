@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useAuthContext, ClientProfile } from "@/components/providers/AuthProvider";
+import { generatePdfFromElement } from "@/utils/pdfGenerator";
 
 export default function ClientProfilePage() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function ClientProfilePage() {
   const [activeTab, setActiveTab] = useState("info"); // info, diagnostics, documents
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [expandedRecords, setExpandedRecords] = useState<Record<string, boolean>>({});
   
   // Data for tabs
   const [records, setRecords] = useState<any[]>([]);
@@ -43,7 +45,10 @@ export default function ClientProfilePage() {
       // Fetch related records
       const { data: recs } = await supabase
         .from('client_records')
-        .select('*')
+        .select(`
+          *,
+          form_templates(title)
+        `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
       if (recs) setRecords(recs);
@@ -165,7 +170,7 @@ export default function ClientProfilePage() {
           {activeTab === "info" && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-brand-navy border-b pb-2">Kontaktné údaje</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Meno a Priezvisko</p>
                   <p className="font-medium">{clientProfile.full_name}</p>
@@ -177,6 +182,22 @@ export default function ClientProfilePage() {
                 <div>
                   <p className="text-sm text-gray-500">Telefón</p>
                   <p className="font-medium">{clientProfile.phone || "Nezadané"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Dátum narodenia</p>
+                  <p className="font-medium">
+                    {clientProfile.metadata?.birthDate 
+                      ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() 
+                      : "Nezadané"}
+                  </p>
+                </div>
+                <div className="md:col-span-2 lg:col-span-1">
+                  <p className="text-sm text-gray-500">Adresa (Trvalý pobyt)</p>
+                  <p className="font-medium">{clientProfile.metadata?.address || "Nezadané"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Záujem o službu</p>
+                  <p className="font-medium">{clientProfile.metadata?.serviceInterest || "Nezadané"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Dátum registrácie</p>
@@ -239,16 +260,118 @@ export default function ClientProfilePage() {
               {records.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Tento klient zatiaľ nemá žiadne diagnostické záznamy.</p>
               ) : (
-                <div className="space-y-3">
-                  {records.map(record => (
-                    <div key={record.id} className="p-4 border rounded-lg hover:border-brand-cyan transition-colors">
-                      <p className="font-bold text-brand-navy">Diagnostický formulár</p>
-                      <p className="text-xs text-gray-500 mb-2">{new Date(record.created_at).toLocaleString()}</p>
-                      <pre className="bg-gray-50 p-2 rounded text-xs overflow-auto">
-                        {JSON.stringify(record.form_data, null, 2)}
-                      </pre>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  {records.map(record => {
+                    // Helper pre formátovanie kľúčov (otázok)
+                    const formatKey = (key: string) => {
+                      const cleaned = key.replace(/^q\d+_/, '');
+                      return cleaned.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+                    };
+
+                    // Helper pre formátovanie odpovedí
+                    const renderValue = (val: any) => {
+                      if (!val) return <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Nezadané</span>;
+                      if (Array.isArray(val)) return val.join(", ");
+                      if (typeof val === 'object' && val !== null) {
+                        return (
+                          <ul className="list-disc pl-5 mt-1 space-y-1 text-sm">
+                            {Object.entries(val).map(([k, v]) => (
+                              <li key={k}><span style={{ fontWeight: 500, color: '#374151' }}>{k}:</span> {String(v)}</li>
+                            ))}
+                          </ul>
+                        );
+                      }
+                      return String(val);
+                    };
+
+                    const templateTitle = record.form_templates?.title || "Diagnostický formulár";
+                    const isExpanded = expandedRecords[record.id];
+
+                    const toggleRecord = () => {
+                      setExpandedRecords(prev => ({ ...prev, [record.id]: !prev[record.id] }));
+                    };
+
+                    return (
+                      <div key={record.id} className="p-5 border rounded-xl hover:border-brand-cyan transition-colors bg-white shadow-sm">
+                        <div 
+                          className="flex justify-between items-center cursor-pointer" 
+                          onClick={toggleRecord}
+                        >
+                          <div>
+                            <p className="font-bold text-lg text-brand-navy">{templateTitle}</p>
+                            <p className="text-xs text-gray-500">{new Date(record.created_at).toLocaleString()}</p>
+                          </div>
+                          <div className="text-brand-cyan font-bold text-xl">
+                            {isExpanded ? "−" : "+"}
+                          </div>
+                        </div>
+                        
+                        {isExpanded && (
+                          <div className="mt-4 pt-4 border-t border-gray-100">
+                            <div className="flex justify-end mb-4">
+                              <button 
+                                onClick={() => generatePdfFromElement(`pdf-record-${record.id}`, `${templateTitle.replace(/\s+/g, '_')}_${clientProfile.full_name.replace(/\s+/g, '_')}.pdf`)}
+                                className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded font-medium flex items-center gap-2"
+                              >
+                                <span>📄</span> Stiahnuť PDF
+                              </button>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {Object.entries(record.form_data || {}).map(([key, val]) => (
+                                <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                  <p className="text-xs font-bold text-brand-navy mb-1 uppercase tracking-wide">{formatKey(key)}</p>
+                                  <div className="text-sm text-gray-800">{renderValue(val)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Skrytá šablóna pre generovanie PDF bez Tailwind farieb (kvôli html2canvas a oklch) */}
+                        <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '794px' }}>
+                          <div id={`pdf-record-${record.id}`} style={{ backgroundColor: '#ffffff', color: '#000000', padding: '20px', fontFamily: '"Noto Sans", sans-serif' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '16px', marginBottom: '24px', borderBottom: '2px solid #0A192F' }}>
+                              <div>
+                                <img src="/logo.png" alt="SportWell Logo" style={{ height: '45px', marginBottom: '8px' }} />
+                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0' }}>Černyševského 30, 851 01 Bratislava</p>
+                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>IČO: 52 124 118</p>
+                              </div>
+                              <div style={{ textAlign: 'right', maxWidth: '300px' }}>
+                                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0A192F', margin: '0 0 8px 0', wordWrap: 'break-word' }}>{templateTitle}</h2>
+                                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Dátum: {new Date(record.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            
+                            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <h3 style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px', color: '#0A192F' }}>Údaje o klientovi</h3>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Meno:</strong> {clientProfile.full_name}</p>
+                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Telefón:</strong> {clientProfile.phone || "Nezadané"}</p>
+                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>E-mail:</strong> {clientProfile.email || "Nezadané"}</p>
+                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Dátum narodenia:</strong> {clientProfile.metadata?.birthDate ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() : "Nezadané"}</p>
+                              </div>
+                            </div>
+
+                            <h3 style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '16px', paddingBottom: '8px', color: '#0A192F', borderBottom: '1px solid #e2e8f0' }}>Výsledky diagnostiky</h3>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
+                              {Object.entries(record.form_data || {}).map(([key, val]) => (
+                                <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
+                                  <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#475569', margin: '0 0 4px 0' }}>{formatKey(key)}</p>
+                                  <div style={{ margin: 0, color: '#0f172a' }}>{renderValue(val)}</div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div style={{ marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '11px', color: '#94a3b8' }}>
+                              <p style={{ margin: 0 }}>Vygenerované systémom SportWell • {new Date().toLocaleString('sk-SK')}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
