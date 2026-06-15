@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [mounted, sessionUser, router]);
 
   const isClient = currentUserProfile?.role === "klient";
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const pathname = usePathname();
 
   useEffect(() => {
     if (mounted && isClient && !currentUserProfile?.gdpr_signed_at && pathname !== '/gdpr') {
