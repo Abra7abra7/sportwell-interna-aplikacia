@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "SportWell",
   },
+  icons: {
+    apple: "/apple-icon.png",
+  },
   formatDetection: {
     telephone: false,
   },
@@ -29,6 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({
