@@ -1,7 +1,7 @@
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
 # Technická dokumentácia & Vývojárska príručka (SportWell v3.0 - Fáza 1 MVP)
@@ -49,117 +49,132 @@ Uchováva osobné údaje a roly používateľov prepojené s `auth.users`.
 - `full_name` (text, spojené meno a priezvisko)
 - `email` (text, synchronizovaný e-mail)
 - `phone` (text)
-- `gdpr_signed_at` (timestamp, čas podpísania GDPR)
+- `gdpr_signed_at` (timestamp, čas podpísania GDPR). Ak je NULL, používateľ nemá prístup k aplikácii.
 - `metadata` (jsonb, uchováva narodeniny, adresu, primárny záujem a voliteľné marketingové súhlasy)
 - `created_at` (timestamp)
 
-### B. Form Templates (`public.form_templates`)
+### B. Employee Invitations (`public.employee_invitations`)
+Uchováva aktívne pozvánky pre nových zamestnancov, odoslané administrátorom.
+- `id` (uuid, primary key)
+- `email` (text, unique)
+- `full_name` (text)
+- `role_title` (text, špecifická pozícia, napr. "Ortopéd")
+- `invited_by` (uuid, references `profiles.id`)
+- `created_at` (timestamp)
+
+### C. Client Specialist Assignments (`public.client_specialist_assignments`)
+Mapovacia tabuľka, ktorá priraďuje konkrétneho klienta (pacienta) konkrétnemu špecialistovi (trénerovi/adminovi).
+- `id` (uuid, primary key)
+- `client_id` (uuid, references `profiles.id`)
+- `specialist_id` (uuid, references `profiles.id`)
+- `assigned_by` (uuid, references `profiles.id`)
+- `created_at` (timestamp)
+
+### D. Form Templates (`public.form_templates`)
 Šablóny pre dynamické formuláre špecialistov (diagnostiky, konzultácie, atď.).
 - `id` (uuid, primary key)
 - `title` (text)
 - `category` (text)
 - `schema` (jsonb, pole polí s definovaným typom, štítkom, placeholderom a validáciami)
-- `is_active` (boolean)
-- `created_at` (timestamp)
 
-### C. Client Records (`public.client_records`)
+### E. Client Records (`public.client_records`)
 Záznamy o zdravotnom stave a diagnostike vyplnené na základe dynamických šablón.
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
 - `created_by` (uuid, references `profiles.id`)
 - `template_id` (uuid, references `form_templates.id`)
-- `form_data` (jsonb, ukladá hodnoty dynamic formulárov vrátane popisu a VAS stupnice bolesti)
-- `created_at` (timestamp)
+- `form_data` (jsonb, ukladá hodnoty dynamic formulárov)
 
-### D. Exercises (`public.exercises`)
-Zoznam rehabilitačných cvičení s inštruktážnymi detailmi a URL na videá.
-- `id` (uuid, primary key)
-- `title` (text)
-- `category` (text)
-- `target` (text)
-- `difficulty` (text)
-- `equipment` (text)
-- `description` (text)
-- `contraindications` (text)
-- `video_url` (text)
-- `created_at` (timestamp)
+### F. Exercises & Training Plans (`public.exercises` a `public.training_plans`)
+Zoznam rehabilitačných cvičení a plány predpísané trénermi pre klientov. Plan data je uložená v poliach formátu JSONB.
 
-### E. Training Plans (`public.training_plans`)
-Tréningové a domáce plány cvičení predpísané trénermi pre klientov.
+### G. Documents (`public.documents` a Supabase Storage `client_documents`)
+Evidencia zmlúv a vygenerovaných HTML/PDF súborov.
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
-- `created_by` (uuid, references `profiles.id`)
-- `plan_data` (jsonb, pole cvičení s parametrami: sets, reps, tempo, pause, notes, completed, rpe, pain_level)
-- `created_at` (timestamp)
-
-### F. Documents (`public.documents`)
-Evidencia právnych zmlúv a PDF súborov (napr. podpísaných GDPR doložiek).
-- `id` (uuid, primary key)
-- `client_id` (uuid, references `profiles.id`)
-- `file_name` (text)
-- `storage_path` (text)
+- `file_name` (text, napr. `GDPR_Suhlas_Mrkvicka.html`)
+- `storage_path` (text, cesta v bucket-e `client_documents`)
 - `created_at` (timestamp)
 
 ---
 
 ## 4. BEZPEČNOSŤ & RLS POLITIKY (ROW LEVEL SECURITY)
 
-Všetky tabuľky majú zapnuté **RLS**. Na zabránenie chybe nekonečného zacyklenia dopytov (`infinite recursion`) pri kontrole rolí je v databáze zavedená pomocná bezpečnostná funkcia `is_specialist` typu **`security definer`**.
+Všetky tabuľky majú zapnuté **RLS**. Na zabránenie chybe nekonečného zacyklenia dopytov pri kontrole rolí je v databáze zavedená pomocná bezpečnostná funkcia `is_specialist` (`security definer`), ktorá obchádza RLS priamo nad tabuľkou `profiles`.
 
-### Riešenie nekonečnej slučky v politikách:
-Funkcia `is_specialist` obchádza RLS priamo nad tabuľkou `profiles` (keďže beží pod právami tvorcu funkcie - superuser):
-```sql
-CREATE OR REPLACE FUNCTION is_specialist(user_id uuid)
-RETURNS boolean AS $$
-begin
-  return exists (
-    select 1 from public.profiles
-    where id = user_id and role in ('admin', 'trener')
-  );
-end;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+### Kľúčové roly a ich prístupy:
+1. **Admin (`role = 'admin'`):**
+   - Má plný prístup ku všetkým tabuľkám.
+   - Ako jediný môže spravovať zamestnancov a odosielať pozvánky cez tabuľku `employee_invitations`.
+   - Má prístup ku všetkým klientom, ich dokumentom, diagnostikám a tréningovým plánom.
+   - Má možnosť priraďovať klientov k akýmkoľvek trénerom.
 
-### Kľúčové politiky:
-1. **Profiles:**
-   - `profiles_select_own`: Používateľ vidí svoj vlastný profil (`auth.uid() = id`).
-   - `profiles_select_specialist`: Špecialisti (admin, trener) vidia všetky profily (`is_specialist(auth.uid())`).
-   - `profiles_update_own`: Klient môže aktualizovať iba svoj vlastný profil.
-2. **Training Plans & Client Records:**
-   - Klient môže čítať iba záznamy, kde `client_id = auth.uid()`.
-   - Admin a Tréner majú plné práva (čítanie, zápis, aktualizácia).
-3. **Documents:**
-   - Klient môže čítať svoje dokumenty (`client_id = auth.uid()`).
-   - Klient môže **vložiť** svoj dokument (pri GDPR onboardingu): `WITH CHECK (client_id = auth.uid())`.
-   - Admin a Tréner majú prístup ku všetkým dokumentom.
+2. **Tréner / Špecialista (`role = 'trener'`):**
+   - Má prístup k prezeraniu všetkých profilov klientov (aby mohol vyhľadávať nových).
+   - Môže upravovať a čítať len tých klientov, dokumenty a záznamy (client_records, training_plans), ktorí sú mu priradení, alebo záznamy, ktoré sám vytvoril.
+   - Nemôže pozývať nových zamestnancov a nevidí zoznam zamestnancov s úmyslom ich úpravy.
+
+3. **Klient (`role = 'klient'`):**
+   - Vidí **iba svoj vlastný profil** (`auth.uid() = id`).
+   - Môže vkladať záznamy do tabuľky `profiles` iba s jeho vlastným `id` (`profiles_insert_own`), čo sa deje pri úvodnej registrácii.
+   - Vidí iba svoje vlastné dokumenty, tréningové plány a záznamy.
+   - Nemá prístup do diagnostiky, správy klientov a zamestnancov.
 
 ---
 
-## 5. DÔLEŽITÉ MODULY A MECHANIZMY V KÓDE (`src/app/page.tsx`)
+## 5. ARCHITEKTÚRA, MODULY A MECHANIZMY
 
-### A. Dynamický Form Renderer
-Formulár v záložke **Diagnostika** pre trénerov sa generuje na základe schémy z vybranej šablóny (`form_templates`):
-- Prechádza JSON pole `schema`.
-- Podporuje typy: `text`, `number`, `textarea`, `select`, `checkbox` a špeciálnu `vas_scale` (interaktívny slider 0-10 pre zaznamenanie bolesti s vizuálnym indikátorom).
-- Po odoslaní ukladá celé dáta do `client_records` v JSONB formáte.
+### A. Smerovanie a Route Guard
+Kód je rozdelený do dvoch zón: `(auth)` a `(dashboard)`.
+- **`layout.tsx` v `(dashboard)`:** Obsahuje silný **Route Guard**. 
+  - Ak používateľ nie je prihlásený, je presmerovaný na `/login`.
+  - Ak je používateľ prihlásený, ale v databáze má v profile `gdpr_signed_at: null`, systém mu **natvrdo skryje navigáciu** a presmeruje ho na stránku `/gdpr`.
 
-### B. 3-stupňový GDPR Wizard
-Blokuje prístup do klientskej zóny, kým klient nepodpíše súhlasy:
-1. **Osobné údaje (Krok 1):** Meno, priezvisko, dátum narodenia, adresa, záujem o služby.
-2. **Povinné súhlasi (Krok 2):** VOP a zmluvné doložky spracovania citlivých údajov s rozbaľovacími akordónmi pre detailné informácie.
-3. **Dobrovoľné súhlasi (Krok 3):** Marketing (Ecomail), Lookalike audiencie (Meta), prepojenie InBody.
-Po dokončení ukladá GDPR timestamp do profilu a simuluje vytvorenie podpísaného PDF doložky v tabuľke `documents`.
+### B. Prihlasovanie (Magic Links)
+- Používame Supabase Auth bez hesiel. Používateľ zadá email, dostane OTP kód / Magic Link.
+- `AuthProvider.tsx` načíta Session. Ak používateľ existuje v `profiles`, stiahne jeho rolu a údaje.
+- Ak používateľ **neexistuje** v `profiles` (nový klient), aplikácia si ho vytvorí lokálne ako provizórneho "Nové Používateľa" a čaká, kým neprejde GDPR onboardingom, po ktorom ho skutočne vloží (`upsert`) do databázy.
+- Ak sa email prihlasujúceho zhoduje so záznamom v `employee_invitations`, systém mu automaticky vytvorí profil s rolou `trener` a pozvánku zmaže.
 
-### C. Tréningový Pláner (Prescription Builder)
-Umožňuje trénerom v záložke **Domáce plány** spravovať a predpisovať cvičenia pre klientov:
-- Reaktívne načítava tréningový plán po výbere klienta z dropdown zoznamu.
-- Umožňuje zvoliť cvičenie zo zoznamu `exercises` z DB, nastaviť série, opakovania, tempo a poznámky, a následne ho vložiť do databázy.
-- Tréneri môžu jednotlivé cvičenia z plánu vymazať (funkcia `deleteClientExercise`), pričom sa reaktívne aktualizuje DB.
+### C. 3-stupňový GDPR Onboarding (Registrácia Klienta)
+Pre nových klientov funguje stránka `/gdpr` ako digitálna vstupná brána:
+1. **Osobné údaje:** Klient vyplní Meno, Priezvisko, Adresu, Telefón a Dátum narodenia.
+2. **Súhlasy:** Zaškrtne povinné zmluvné dokumenty (Zásady ochrany OU, Rezervačný systém) a voliteľné marketingové súhlasy (InBody, Meta, Newsletter). Vizuálna validácia upozorní na chýbajúce polia červeným orámovaním.
+3. **Uloženie do DB (Upsert & FK):**
+   - Z údajov sa na klientovej strane vygeneruje právny HTML dokument, ktorý sa nahrá do úložiska (Storage Bucket `client_documents`).
+   - Vykoná sa `upsert` na tabuľku `profiles`, čím sa fyzicky vytvorí používateľ v databáze a zapíše sa mu `gdpr_signed_at`.
+   - Vloží sa záznam do tabuľky `documents` (s ohľadom na Foreign Key `client_id`).
+   - Zmizne bariéra Route Guardu a klient je presmerovaný do štandardného Dashboardu s plnohodnotným navigačným menu (Bottom Bar).
 
-### D. Špecializované diagnostické a zmluvné formuláre
-Tieto komponenty poskytujú interaktívne sprievodcovské rozhrania so stavovou validáciou:
-1. **Komplexná & Základná diagnostika** (`ComplexDiagnosticsForm.tsx`): 10-krokový sprievodca pre anamnézu, životný štýl, detailnú funkčnú diagnostiku (SI skĺbenie, klenby, trigger pointy, rozsahy ramena/bedra) a FMS skórovanie (Deep Squat, inline lunge, clearing testy).
-2. **Výstupná diagnostika po OP kolena & členka** (`KneeDiagnosticsForm.tsx`, `AnkleDiagnosticsForm.tsx`): Sledovanie pooperačnej mobility a flexie členkov a kolien. Obsahuje vizuálne asistenčné pomôcky a Dynamo silové reporty.
-3. **Výstupná diagnostika po OP ramena** (`ShoulderDiagnosticsForm.tsx`): 5-krokový pooperačný dotazník pre hornú končatinu (flexia, extenzia, abdukcia, rotácie) a silové ISO testy.
-4. **Zmluva o nájme zdravotníckeho prístroja** (`DeviceLeaseAgreementForm.tsx`): 5-krokový prenájmový formulár s prepojením na identitu Nájomcu, výberom prístroja, splátkovými sumami, statickým právnym textom a digitálnym overením emailového podpisu.
+---
 
+## 6. ŠTRUKTÚRA ADRESÁROV A SÚBOROV
+
+Projekt využíva štandardnú štruktúru **Next.js App Router**:
+
+```text
+/src
+  /app                  
+    /(auth)/login       # Verejná cesta (Magic link, OTP)
+    /(dashboard)        # Chránené cesty (Route Guard v layout.tsx)
+      /dashboard        # Hlavný prehľad (odlišný pre trénera a klienta)
+      /diagnostika      # Dynamické formuláre pre trénerov
+      /dokumenty        # Zoznam dokumentov a zmlúv
+      /gdpr             # GDPR Onboarding wizard pre nových klientov
+      /klienti          # Správa klientov (priraďovanie špecialistov)
+      /plan             # Tréningové plány
+      /zamestnanci      # Správa zamestnancov a odosielanie pozvánok (Admin len)
+    globals.css         # Globálne štýly a Tailwind premenné
+    layout.tsx          # Root layout s AuthProvider
+  
+  /components           
+    /providers/AuthProvider.tsx  # Hlavný manažér stavu prihlásenia a profilov
+    /forms              # Izolované komponenty (diagnostika, validácia)
+    /layout             # Sidebar, Header, BottomNav
+  
+  /hooks                # Custom React hooky pre načítanie dát bez globálneho stavu
+  /utils/supabase       # Inicializácia SSR klienta a Browser klienta
+  
+/supabase
+  /migrations           # SQL skripty - databázová schéma a RLS politiky
+```

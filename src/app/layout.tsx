@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -43,7 +44,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <ErrorBoundary>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>
