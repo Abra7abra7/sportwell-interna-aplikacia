@@ -77,22 +77,24 @@ Mapovacia tabuľka, ktorá priraďuje konkrétneho klienta (pacienta) konkrétne
 - `category` (text)
 - `schema` (jsonb, pole polí s definovaným typom, štítkom, placeholderom a validáciami)
 
-### E. Client Records (`public.client_records`)
-Záznamy o zdravotnom stave a diagnostike vyplnené na základe dynamických šablón.
+### E. Client Records (`public.client_records` a Supabase Storage `client_records_files`)
+Záznamy o zdravotnom stave a diagnostike vyplnené na základe dynamických šablón. Novinkou v zjednotenom systéme je plná podpora nahrávania súborov a obrázkov.
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
 - `created_by` (uuid, references `profiles.id`)
 - `template_id` (uuid, references `form_templates.id`)
-- `form_data` (jsonb, ukladá hodnoty dynamic formulárov)
+- `form_data` (jsonb, ukladá hodnoty dynamických formulárov, vrátane URL odkazov na nahraté súbory)
+- Nahrávané obrázky a súbory sú uložené v Storage bucket-e `client_records_files`.
 
 ### F. Exercises & Training Plans (`public.exercises` a `public.training_plans`)
 Zoznam rehabilitačných cvičení a plány predpísané trénermi pre klientov. Plan data je uložená v poliach formátu JSONB.
 
 ### G. Documents (`public.documents` a Supabase Storage `client_documents`)
-Evidencia zmlúv a vygenerovaných HTML/PDF súborov.
+Evidencia zmlúv a vygenerovaných PDF súborov. 
+- Aplikácia využíva knižnicu **pdfmake** na bezpečné a kvalitné generovanie PDF dokumentov na strane klienta s podporou formátovania, tabuliek a heslovania (ak je potrebné).
 - `id` (uuid, primary key)
 - `client_id` (uuid, references `profiles.id`)
-- `file_name` (text, napr. `GDPR_Suhlas_Mrkvicka.html`)
+- `file_name` (text, napr. `GDPR_Suhlas_Mrkvicka.pdf`)
 - `storage_path` (text, cesta v bucket-e `client_documents`)
 - `created_at` (timestamp)
 
@@ -130,10 +132,11 @@ Kód je rozdelený do dvoch zón: `(auth)` a `(dashboard)`.
   - Ak používateľ nie je prihlásený, je presmerovaný na `/login`.
   - Ak je používateľ prihlásený, ale v databáze má v profile `gdpr_signed_at: null`, systém mu **natvrdo skryje navigáciu** a presmeruje ho na stránku `/gdpr`.
 
-### B. Prihlasovanie (Magic Links)
-- Používame Supabase Auth bez hesiel. Používateľ zadá email, dostane OTP kód / Magic Link.
+### B. Prihlasovanie (Magic Links & PKCE)
+- Používame Supabase Auth bez hesiel cez technológiu Magic Links. Používateľ zadá email a na e-mail dostane autorizačný odkaz.
+- Keďže Supabase striktne vyžaduje PKCE (Proof Key for Code Exchange), odkaz musí byť otvorený v rovnakom prehliadači, z akého bol vyžiadaný. V opačnom prípade systém vygeneruje chybu `Invalid_link` a používateľa na obrazovke `/login` slušne upozorní na nesprávny postup.
 - `AuthProvider.tsx` načíta Session. Ak používateľ existuje v `profiles`, stiahne jeho rolu a údaje.
-- Ak používateľ **neexistuje** v `profiles` (nový klient), aplikácia si ho vytvorí lokálne ako provizórneho "Nové Používateľa" a čaká, kým neprejde GDPR onboardingom, po ktorom ho skutočne vloží (`upsert`) do databázy.
+- Ak používateľ **neexistuje** v `profiles` (nový klient), aplikácia si ho vytvorí lokálne ako provizórneho "Nového Používateľa" a čaká, kým neprejde GDPR onboardingom, po ktorom ho skutočne vloží (`upsert`) do databázy.
 - Ak sa email prihlasujúceho zhoduje so záznamom v `employee_invitations`, systém mu automaticky vytvorí profil s rolou `trener` a pozvánku zmaže.
 
 ### C. 3-stupňový GDPR Onboarding (Registrácia Klienta)
@@ -141,7 +144,7 @@ Pre nových klientov funguje stránka `/gdpr` ako digitálna vstupná brána:
 1. **Osobné údaje:** Klient vyplní Meno, Priezvisko, Adresu, Telefón a Dátum narodenia.
 2. **Súhlasy:** Zaškrtne povinné zmluvné dokumenty (Zásady ochrany OU, Rezervačný systém) a voliteľné marketingové súhlasy (InBody, Meta, Newsletter). Vizuálna validácia upozorní na chýbajúce polia červeným orámovaním.
 3. **Uloženie do DB (Upsert & FK):**
-   - Z údajov sa na klientovej strane vygeneruje právny HTML dokument, ktorý sa nahrá do úložiska (Storage Bucket `client_documents`).
+   - Z údajov sa na klientovej strane vygeneruje právny PDF dokument (cez pdfmake), ktorý sa nahrá do úložiska (Storage Bucket `client_documents`).
    - Vykoná sa `upsert` na tabuľku `profiles`, čím sa fyzicky vytvorí používateľ v databáze a zapíše sa mu `gdpr_signed_at`.
    - Vloží sa záznam do tabuľky `documents` (s ohľadom na Foreign Key `client_id`).
    - Zmizne bariéra Route Guardu a klient je presmerovaný do štandardného Dashboardu s plnohodnotným navigačným menu (Bottom Bar).

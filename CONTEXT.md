@@ -19,6 +19,7 @@ Z technického a databázového hľadiska zostáva jednotná rola `trener`, ktor
 
 ## Prihlasovanie klienta (Authentication)
 Pre dosiahnutie čo najlepšieho UX (najmä na mobilných zariadeniach) sa pri klientoch používa **Magic Link** (Overenie bez hesla). Používateľ si na email pošle odkaz, ktorým sa jedným klikom prihlási a zároveň overí.
+**Poznámka k UX:** Systém prísne dodržiava štandard PKCE, čo znamená, že odkaz v e-maile musí byť vždy otvorený v tom istom prehliadači, v ktorom bol vyžiadaný, inak bude odmietnutý z bezpečnostných dôvodov. UI na túto situáciu reaguje záchranným hlásením.
 
 ## Zástupný GDPR súhlas (Proxy Consent)
 Kým nie je udelený súhlas s GDPR, klient je v stave "Onboarding" a nemal by s ním byť vykonávaný štandardný proces. Avšak Zamestnanec **má oprávnenie** udeliť zástupný GDPR súhlas v mene klienta (napr. na základe papierového podpisu na klinike), čím klienta manuálne "Aktivuje" a získa možnosť vytvoriť pre neho diagnostiku.
