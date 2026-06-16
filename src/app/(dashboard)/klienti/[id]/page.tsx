@@ -407,42 +407,44 @@ export default function ClientProfilePage() {
 
                         {/* Skrytá šablóna pre generovanie PDF bez Tailwind farieb (kvôli html2canvas a oklch) */}
                         <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '794px' }}>
-                          <div id={`pdf-record-${record.id}`} style={{ backgroundColor: '#ffffff', color: '#000000', padding: '20px', fontFamily: '"Noto Sans", sans-serif' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '16px', marginBottom: '24px', borderBottom: '2px solid #0A192F' }}>
+                          <div id={`pdf-record-${record.id}`} style={{ backgroundColor: '#ffffff', color: '#000000', fontFamily: '"Noto Sans", sans-serif' }}>
+                            <div style={{ backgroundColor: '#0A192F', color: '#ffffff', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                <img src="/logo.png" alt="SportWell Logo" style={{ height: '45px', marginBottom: '8px' }} />
-                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0' }}>Černyševského 30, 851 01 Bratislava</p>
-                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>IČO: 52 124 118</p>
+                                <img src="/sportwell-logo.svg" alt="SportWell Logo" style={{ height: '50px', width: '50px', marginBottom: '8px' }} />
+                                <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '2px 0', opacity: 0.8 }}>Černyševského 30, 851 01 Bratislava</p>
+                                <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '0', opacity: 0.8 }}>IČO: 52 124 118</p>
                               </div>
-                              <div style={{ textAlign: 'right', maxWidth: '300px' }}>
-                                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0A192F', margin: '0 0 8px 0', wordWrap: 'break-word' }}>{templateTitle}</h2>
-                                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Dátum: {new Date(record.created_at).toLocaleDateString()}</p>
+                              <div style={{ textAlign: 'right', maxWidth: '350px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#00F0FF', margin: '0 0 8px 0', wordWrap: 'break-word', textTransform: 'uppercase' }}>{templateTitle}</h2>
+                                <p style={{ fontSize: '14px', color: '#ffffff', margin: 0, opacity: 0.9 }}>Dátum: {new Date(record.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>
                             
-                            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                              <h3 style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px', color: '#0A192F' }}>Údaje o klientovi</h3>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
-                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Meno:</strong> {clientProfile.full_name}</p>
-                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Telefón:</strong> {clientProfile.phone || "Nezadané"}</p>
-                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>E-mail:</strong> {clientProfile.email || "Nezadané"}</p>
-                                <p style={{ margin: 0 }}><strong style={{ color: '#6b7280', fontWeight: 'normal' }}>Dátum narodenia:</strong> {clientProfile.metadata?.birthDate ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() : "Nezadané"}</p>
-                              </div>
-                            </div>
-
-                            <h3 style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '16px', paddingBottom: '8px', color: '#0A192F', borderBottom: '1px solid #e2e8f0' }}>Výsledky diagnostiky</h3>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
-                              {Object.entries(record.form_data || {}).map(([key, val]) => (
-                                <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
-                                  <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#475569', margin: '0 0 4px 0' }}>{getFieldLabel(key)}</p>
-                                  <div style={{ margin: 0, color: '#0f172a' }}>{renderValue(val)}</div>
+                            <div style={{ padding: '40px' }}>
+                              <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#F7FAFC', borderRadius: '12px', borderLeft: '4px solid #00F0FF', border: '1px solid #e2e8f0' }}>
+                                <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '16px', color: '#020C1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Údaje o klientovi</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+                                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Meno:</strong> {clientProfile.full_name}</p>
+                                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Telefón:</strong> {clientProfile.phone || "Nezadané"}</p>
+                                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>E-mail:</strong> {clientProfile.email || "Nezadané"}</p>
+                                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Dátum nar.:</strong> {clientProfile.metadata?.birthDate ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() : "Nezadané"}</p>
                                 </div>
-                              ))}
-                            </div>
-                            
-                            <div style={{ marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '11px', color: '#94a3b8' }}>
-                              <p style={{ margin: 0 }}>Vygenerované systémom SportWell • {new Date().toLocaleString('sk-SK')}</p>
+                              </div>
+
+                              <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '20px', paddingBottom: '10px', color: '#020C1B', borderBottom: '2px solid #D3FAFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Výsledky diagnostiky</h3>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
+                                {Object.entries(record.form_data || {}).map(([key, val]) => (
+                                  <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                    <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#0A192F', margin: '0 0 6px 0', letterSpacing: '0.5px' }}>{getFieldLabel(key)}</p>
+                                    <div style={{ margin: 0, color: '#334155', fontSize: '14px' }}>{renderValue(val)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
+                                <p style={{ margin: 0 }}>Vygenerované systémom SportWell • {new Date().toLocaleString('sk-SK')}</p>
+                              </div>
                             </div>
                           </div>
                         </div>

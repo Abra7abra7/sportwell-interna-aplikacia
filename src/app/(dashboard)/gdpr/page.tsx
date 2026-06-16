@@ -94,38 +94,7 @@ export default function GdprPage() {
     });
   };
 
-  const generateConsentHtml = () => {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head><meta charset="utf-8"><title>GDPR Súhlas - ${formData.firstName} ${formData.lastName}</title></head>
-      <body style="font-family: sans-serif; padding: 40px; max-width: 800px; margin: auto;">
-        <h1>GDPR Súhlas a Registrácia - SportWell</h1>
-        <p><strong>Dátum podpisu:</strong> ${new Date().toLocaleString('sk-SK')}</p>
-        <hr/>
-        <h3>Osobné údaje:</h3>
-        <ul>
-          <li><strong>Meno a priezvisko:</strong> ${formData.firstName} ${formData.lastName}</li>
-          <li><strong>E-mail:</strong> ${currentUserProfile.email}</li>
-          <li><strong>Telefón:</strong> ${formData.phone}</li>
-          <li><strong>Dátum narodenia:</strong> ${formData.birthDate}</li>
-          <li><strong>Trvalý pobyt:</strong> ${formData.address}</li>
-          <li><strong>Záujem o službu:</strong> ${formData.service}</li>
-        </ul>
-        <h3>Udelené súhlasy:</h3>
-        <ul>
-          <li>Oboznámenie sa s pravidlami ochrany osobných údajov: <strong>ÁNO</strong></li>
-          <li>Súhlas s podmienkami používania rezervačného systému: <strong>ÁNO</strong></li>
-          <li>Súhlas so spracovaním na marketingové účely: <strong>${consents.marketing ? 'ÁNO' : 'NIE'}</strong></li>
-          <li>Súhlas s poskytnutím údajov tretej osobe (Meta): <strong>${consents.meta ? 'ÁNO' : 'NIE'}</strong></li>
-          <li>Súhlas so spracovaním údajov z diagnostiky: <strong>${consents.diagnostics ? 'ÁNO' : 'NIE'}</strong></li>
-        </ul>
-        <br/>
-        <p><em>Tento dokument bol vygenerovaný a elektronicky potvrdený používateľom po úspešnej autentifikácii e-mailom.</em></p>
-      </body>
-      </html>
-    `;
-  };
+  // HTML generátor odstránený, používame PDF generátor na pozadí
 
   const handleSubmit = async () => {
     setShowValidation(true);
@@ -144,14 +113,20 @@ export default function GdprPage() {
 
     try {
       const signedAt = new Date().toISOString();
-      const htmlContent = generateConsentHtml();
-      const fileName = `gdpr_${currentUserProfile.id}_${Date.now()}.html`;
+      
+      const { generatePdfBlob } = await import('@/utils/pdfGenerator');
+      const pdfBlob = await generatePdfBlob('gdpr-pdf-template');
+      
+      if (!pdfBlob) {
+        throw new Error("Nepodarilo sa vygenerovať PDF zmluvu.");
+      }
+      
+      const fileName = `gdpr_${currentUserProfile.id}_${Date.now()}.pdf`;
 
       // 1. Upload file to Supabase Storage
-      const fileBlob = new Blob([htmlContent], { type: 'text/html' });
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('client_documents')
-        .upload(fileName, fileBlob);
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf' });
 
       if (uploadError) {
         console.error("Storage upload failed:", uploadError);
@@ -404,6 +379,61 @@ export default function GdprPage() {
         </button>
       </div>
 
+      {/* Hidden PDF template for GDPR */}
+      <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '794px' }}>
+        <div id="gdpr-pdf-template" style={{ backgroundColor: '#ffffff', color: '#000000', fontFamily: '"Noto Sans", sans-serif' }}>
+          <div style={{ backgroundColor: '#0A192F', color: '#ffffff', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <img src="/logo.png" alt="SportWell Logo" style={{ height: '50px', width: 'auto', marginBottom: '8px' }} />
+              <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '2px 0', opacity: 0.8 }}>Černyševského 30, 851 01 Bratislava</p>
+              <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '0', opacity: 0.8 }}>IČO: 52 124 118</p>
+            </div>
+            <div style={{ textAlign: 'right', maxWidth: '350px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#00F0FF', margin: '0 0 8px 0', wordWrap: 'break-word', textTransform: 'uppercase' }}>Súhlas s podmienkami (GDPR)</h2>
+              <p style={{ fontSize: '14px', color: '#ffffff', margin: 0, opacity: 0.9 }}>Dátum podpisu: {new Date().toLocaleDateString('sk-SK')}</p>
+            </div>
+          </div>
+          
+          <div style={{ padding: '40px' }}>
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#F7FAFC', borderRadius: '12px', borderLeft: '4px solid #00F0FF', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '16px', color: '#020C1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Osobné údaje klienta</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Meno:</strong> {formData.firstName} {formData.lastName}</p>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>E-mail:</strong> {currentUserProfile?.email}</p>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Telefón:</strong> {formData.phone}</p>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Dátum nar.:</strong> {formData.birthDate ? new Date(formData.birthDate).toLocaleDateString('sk-SK') : ''}</p>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Trvalý pobyt:</strong> {formData.address}</p>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Záujem:</strong> {formData.service}</p>
+              </div>
+            </div>
+
+            <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '20px', paddingBottom: '10px', color: '#020C1B', borderBottom: '2px solid #D3FAFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Udelené súhlasy</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', fontSize: '14px' }}>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Oboznámenie sa s pravidlami ochrany osobných údajov:</strong> <span style={{ color: '#00F0FF', fontWeight: 'bold', marginLeft: '8px' }}>ÁNO</span></p>
+              </div>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas s podmienkami používania rezervačného systému:</strong> <span style={{ color: '#00F0FF', fontWeight: 'bold', marginLeft: '8px' }}>ÁNO</span></p>
+              </div>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas so spracovaním na marketingové účely:</strong> <span style={{ color: consents.marketing ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{consents.marketing ? 'ÁNO' : 'NIE'}</span></p>
+              </div>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas s poskytnutím údajov tretej osobe (Meta):</strong> <span style={{ color: consents.meta ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{consents.meta ? 'ÁNO' : 'NIE'}</span></p>
+              </div>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas so spracovaním údajov z diagnostiky:</strong> <span style={{ color: consents.diagnostics ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{consents.diagnostics ? 'ÁNO' : 'NIE'}</span></p>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
+              <p style={{ margin: 0 }}>Tento dokument bol vygenerovaný a elektronicky potvrdený používateľom po úspešnej autentifikácii e-mailom.</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '10px' }}>Systém SportWell • IP adresa a časová stopa uložená v databáze.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

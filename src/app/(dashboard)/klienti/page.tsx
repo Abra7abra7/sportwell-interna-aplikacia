@@ -35,28 +35,31 @@ export default function KlientiPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/60 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-gray-100/50">
         <div>
           <h1 className="text-3xl font-bold text-brand-navy">Správa Klientov</h1>
-          <p className="text-gray-500 mt-1">Prehľad všetkých klientov a ich priradených trénerov</p>
+          <p className="text-gray-500 mt-1 font-medium">Prehľad všetkých klientov a ich priradených trénerov</p>
         </div>
         <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-4 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <div className="relative flex-1 md:w-64 group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400 group-focus-within:text-brand-cyan transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
             <input
               type="text"
               placeholder="Hľadať klienta..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all shadow-sm"
+              className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan transition-all shadow-sm"
             />
           </div>
           {currentUserProfile?.role === 'admin' && (
             <button
               onClick={() => setIsInviteModalOpen(true)}
-              className="bg-brand-cyan hover:scale-105 text-brand-dark-navy px-5 py-2.5 rounded-xl font-bold shadow-sm transition-all duration-200 whitespace-nowrap"
+              className="bg-brand-cyan hover:bg-brand-cyan/90 hover:-translate-y-0.5 text-brand-dark-navy px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(0,240,255,0.39)] transition-all duration-200 whitespace-nowrap flex items-center gap-2"
             >
-              + Pozvať klienta
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+              Pozvať klienta
             </button>
           )}
         </div>
@@ -68,46 +71,46 @@ export default function KlientiPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-brand-navy text-lg">Zoznam klientov</h3>
-          <span className="bg-brand-cyan/20 text-brand-dark-navy text-xs font-bold px-3 py-1 rounded-full">
-            {clients.length}
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50 overflow-hidden">
+        <div className="bg-brand-dark-navy px-6 py-5 border-b border-gray-100/10 flex items-center justify-between">
+          <h3 className="font-bold text-white text-lg tracking-wide">Zoznam klientov</h3>
+          <span className="bg-brand-cyan/20 text-brand-cyan text-xs font-bold px-3 py-1 rounded-full border border-brand-cyan/30">
+            {clients.length} CELKOM
           </span>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-cyan"></div>
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-brand-cyan"></div>
           </div>
         ) : clients.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">
-            <svg className="w-12 h-12 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-            Nenašli sa žiadni klienti.
+          <div className="p-16 text-center text-gray-400 bg-gray-50/50">
+            <svg className="w-16 h-16 mx-auto mb-4 opacity-20 text-brand-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <p className="font-medium text-lg">Nenašli sa žiadni klienti</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50/50">
+              <thead className="bg-brand-navy/5">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Klient</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Kontakt</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Priradený personál</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Aktivita</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">GDPR Stav</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Klient</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Kontakt</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Priradený personál</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Aktivita</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">GDPR Stav</th>
                   {currentUserProfile?.role === 'admin' && <th className="px-6 py-4"></th>}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-50">
+              <tbody className="bg-white/50 divide-y divide-gray-50">
                 {clients.map((client) => (
                   <tr 
                     key={client.id} 
-                    className="hover:bg-brand-off-white cursor-pointer transition-colors group"
+                    className="hover:bg-brand-light-cyan/20 cursor-pointer transition-colors group"
                     onClick={() => router.push(`/klienti/${client.id}`)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-5 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-brand-light-cyan flex items-center justify-center text-brand-navy font-bold text-sm">
+                        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-navy to-brand-dark-navy flex items-center justify-center text-brand-cyan font-bold text-lg shadow-sm">
                           {client.full_name.charAt(0)}
                         </div>
                         <div className="ml-4">

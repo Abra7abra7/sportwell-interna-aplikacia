@@ -104,7 +104,7 @@ export default function GdprWizard({
       <div className="glass-panel-dark text-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-white/10 space-y-6 my-8">
         <div className="text-center">
           <div className="inline-block mb-2 overflow-hidden rounded-xl bg-black border border-white/10 p-1">
-            <img src="/logo.png" alt="SportWell Logo" className="w-12 h-12 object-contain" />
+            <img src="/sportwell-logo.svg" alt="SportWell Logo" className="w-12 h-12 object-contain" />
           </div>
           <h2 className="text-2xl font-bold">Aktivácia profilu</h2>
           <p className="text-xs text-gray-300 mt-1">

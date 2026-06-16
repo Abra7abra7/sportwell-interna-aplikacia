@@ -2,12 +2,20 @@ import html2pdf from 'html2pdf.js';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// @ts-ignore
-import pdfMake from "pdfmake/build/pdfmake";
-// @ts-ignore
-import pdfFonts from "pdfmake/build/vfs_fonts";
+import * as pdfMakeLib from "pdfmake/build/pdfmake";
+import * as pdfFontsLib from "pdfmake/build/vfs_fonts";
 
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+// Ošetrenie importu pre Next.js Turbopack
+const pdfMake: any = (pdfMakeLib as any).default || pdfMakeLib;
+const pdfFonts: any = (pdfFontsLib as any).default || pdfFontsLib;
+
+if (pdfFonts && pdfFonts.pdfMake) {
+  pdfMake.vfs = pdfFonts.pdfMake.vfs;
+} else if (pdfFonts && pdfFonts.vfs) {
+  pdfMake.vfs = pdfFonts.vfs;
+} else {
+  pdfMake.vfs = pdfFonts;
+}
 
 export const generatePdfFromElement = (elementId: string, filename: string) => {
   const element = document.getElementById(elementId);
@@ -29,46 +37,51 @@ export const generatePdfFromElement = (elementId: string, filename: string) => {
 
 export const generatePdfBlob = async (elementId: string, password?: string): Promise<Blob | null> => {
   const element = document.getElementById(elementId);
-  if (!element) return null;
+  if (!element) {
+    console.error(`Element ${elementId} neexistuje!`);
+    return null;
+  }
 
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-    
-    // A4 width is 595.28 pts. Margin is 15.
-    const docDefinition: any = {
-      pageSize: 'A4',
-      pageMargins: [15, 15, 15, 15],
-      content: [
-        {
-          image: imgData,
-          width: 595.28 - 30,
-        }
-      ]
+    console.log("Začínam html2pdf pre Blob...");
+    const opt = {
+      margin: [10, 10, 10, 10], // margin in mm
+      filename: 'document.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     
+    // Pouzijeme html2pdf workers api pre ziskanie jsPDF instancie
+    const worker = html2pdf().set(opt).from(element);
+    
+    // Ziskame jsPDF instanciu a vlozime heslo ak treba
+    const pdf = await worker.toPdf().get('pdf');
+    
     if (password) {
-      docDefinition.userPassword = password;
-      docDefinition.ownerPassword = password + "_admin";
-      docDefinition.permissions = {
-        printing: 'highResolution',
-        modifying: false,
-        copying: false,
-      };
+      console.log("Pokus o aplikovanie hesla do jsPDF...");
+      try {
+        if (typeof (pdf as any).setEncryption === 'function') {
+          (pdf as any).setEncryption({
+            userPassword: password,
+            ownerPassword: password + "_admin",
+            userPermissions: ["print"]
+          });
+        }
+      } catch (e) {
+        console.warn("Šifrovanie zlyhalo, sťahujem nezašifrované PDF.", e);
+      }
     }
 
-    return new Promise((resolve) => {
-      pdfMake.createPdf(docDefinition).getBlob((blob: Blob) => {
-        resolve(blob);
-      });
-    });
+    console.log("Vytvaram output Blob z html2pdf...");
+    const blob = await pdf.output('blob');
+    console.log("PDF vygenerovane uspesne!");
+    return blob;
+    
   } catch (error) {
     console.error("Chyba pri generovaní PDF:", error);
+    alert("Chyba pri generovaní PDF: " + String(error));
     return null;
   }
 };
