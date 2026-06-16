@@ -24,6 +24,8 @@ function getIconForId(id: string) {
       return <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>;
     case "zamestnanci":
       return <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>;
+    case "nastavenia":
+      return <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>;
     default:
       return null;
   }
@@ -73,39 +75,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const role = currentUserProfile.role;
+  const perms = currentUserProfile.permissions || {};
+  const canRead = (moduleId: string) => perms[moduleId]?.read === true || ["admin", "majitel"].includes(role);
   
   // RBAC: Priradenie položiek menu podľa rolí
   let navigationItems = [{ id: "dashboard", label: "Dashboard", href: "/dashboard" }];
 
-  if (isClient) {
-    navigationItems.push({ id: "plan", label: "Moje Cviky", href: "/plan" });
-    navigationItems.push({ id: "dokumenty", label: "Dokumenty", href: "/dokumenty" });
-  } else {
-    // Všetci zamestnanci vidia klientov
+  if (canRead("klienti") && !isClient) {
     navigationItems.push({ id: "klienti", label: "Klienti", href: "/klienti" });
+  }
+  if (canRead("diagnostika") && !isClient) {
+    navigationItems.push({ id: "diagnostika", label: "Diagnostika", href: "/diagnostika" });
+  }
+  if (canRead("plan")) {
+    navigationItems.push({ id: "plan", label: isClient ? "Moje Cviky" : "Tréningové Plány", href: "/plan" });
+  }
+  if (canRead("cviky") && !isClient) {
+    navigationItems.push({ id: "cviky", label: "Databáza Cvikov", href: "/cviky" });
+  }
+  if (canRead("sablony") && !isClient) {
+    navigationItems.push({ id: "sablony", label: "Šablóny a Formuláre", href: "/sablony" });
+  }
+  if (canRead("dokumenty")) {
+    navigationItems.push({ id: "dokumenty", label: "Dokumenty", href: "/dokumenty" });
+  }
+  if (canRead("zamestnanci") && !isClient) {
+    navigationItems.push({ id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" });
+  }
 
-    // Lekárska sekcia (Diagnostika)
-    if (["admin", "majitel", "lekar", "fyzioterapeut", "maser", "nutricny_poradca"].includes(role)) {
-      navigationItems.push({ id: "diagnostika", label: "Diagnostika", href: "/diagnostika" });
-    }
-
-    // Tréningová sekcia (Plány a Cviky)
-    if (["admin", "majitel", "lekar", "fyzioterapeut", "fitness_trener", "trener"].includes(role)) {
-      navigationItems.push({ id: "plan", label: "Tréningové Plány", href: "/plan" });
-      navigationItems.push({ id: "cviky", label: "Databáza Cvikov", href: "/cviky" });
-    }
-
-    // Správcovská sekcia
-    if (["admin", "majitel"].includes(role)) {
-      navigationItems.push({ id: "sablony", label: "Šablóny a Formuláre", href: "/sablony" });
-      navigationItems.push({ id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" });
-    }
+  // Prístup k nastaveniam aplikácie (Matrix)
+  if (["admin", "majitel"].includes(role)) {
+    navigationItems.push({ id: "nastavenia", label: "Nastavenia (RBAC)", href: "/nastavenia" });
   }
 
   return (
-    <div className="min-h-screen bg-brand-off-white flex flex-col md:flex-row">
+    <div className="h-screen bg-brand-off-white flex flex-col md:flex-row overflow-hidden">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-brand-dark-navy text-white min-h-screen shadow-2xl z-20">
+      <aside className="hidden md:flex flex-col w-64 bg-brand-dark-navy text-white h-screen shadow-2xl z-20 shrink-0">
         <div className="p-6">
           <Logo className="h-10 mb-2" showText={true} darkText={false} />
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/10 inline-block px-2 py-0.5 rounded ml-1">

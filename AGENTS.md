@@ -74,12 +74,23 @@ Mapuje klientov na konkrétnych špecialistov (trénerov/adminov), aby tréneri 
 
 ## 4. BEZPEČNOSŤ & RLS POLITIKY (ROW LEVEL SECURITY)
 
-Všetky tabuľky majú zapnuté **RLS**. Používa sa bezpečnostná funkcia `is_specialist` (`security definer`), ktorá obchádza RLS priamo nad tabuľkou `profiles` (prevencia nekonečnej slučky).
+Všetky tabuľky majú zapnuté **RLS**. Aplikácia má prísnu izoláciu dát (Multi-Tenancy) pre jednotlivých špecialistov a využíva dynamickú Maticu Oprávnení (RBAC).
 
-### Kľúčové roly a prístupy:
-1. **Admin:** Má plný prístup všade. Môže spravovať zamestnancov a priraďovať klientov ku komukoľvek.
-2. **Tréner:** Môže si prehliadať zoznam profilov (pre hľadanie klientov), no editovať diagnostiku, plány a dokumenty môže **len pre svojich priradených klientov** (alebo tie, ktoré sám vytvoril). Nemôže spravovať zamestnancov.
-3. **Klient:** Vidí a upravuje **iba seba**. Vidí len svoje tréningové plány a svoje dokumenty.
+### A. RBAC Matica Oprávnení (`public.role_permissions`)
+- Pri prihlásení (`AuthProvider.tsx`) si aplikácia prečíta rolu zamestnanca a stiahne si mapu oprávnení z databázy (či môže daný modul `read`, `write`, `delete`).
+- Na základe týchto oprávnení sa napr. dynamicky vykresľuje ľavé menu (`layout.tsx`).
+- Konfiguráciu matice spravuje Admin / Majiteľ na obrazovke `/nastavenia`.
+
+### B. Izolácia Dát pre Špecialistov (Multi-Tenancy)
+Na úrovni RLS sú striktne izolované kľúčové entity:
+1. **Klienti (`public.profiles`)**: Tréneri a lekári v systéme vidia **iba tých klientov**, ktorí im boli priradení cez `client_specialist_assignments`. Neuvidia cudzích pacientov. Admin a Recepcia vidia všetkých (pomocou funkcie `has_global_client_access`).
+2. **Cviky (`public.exercises`)**: Globálne cviky (`is_custom = false`) vidia všetci. Vlastné cviky (`is_custom = true`) vidí iba tréner, ktorý ich nahral (`created_by`), prípadne klient, ak má cvik priradený v aktívnom pláne. Tréner A nevidí cviky Trénera B.
+3. **Tréningové Plány (`public.training_plans`)**: Špecialista vidí a môže editovať výhradne plány, ktoré sám vytvoril, alebo ktoré patria jeho priradenému pacientovi.
+
+### C. Kľúčové roly (Základné správanie)
+1. **Admin / Majiteľ:** Majú plný prístup všade. Majú hardcodovaný bypass v RLS (Super User pattern). Môžu spravovať zamestnancov a priraďovať klientov ku komukoľvek.
+2. **Tréner / Lekár / Špecialista:** Riadený cez RBAC maticu a Multi-Tenancy RLS (vidí len svoje).
+3. **Klient:** Vidí a upravuje **iba seba**. Vidí len svoje tréningové plány a svoje dokumenty. Nechodí do administrátorských sekcií.
 
 ---
 

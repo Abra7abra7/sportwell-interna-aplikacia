@@ -17,6 +17,7 @@ export interface ClientProfile {
     meta_lookalike_opt_in?: boolean;
     [key: string]: any;
   };
+  permissions?: Record<string, { read: boolean, write: boolean, delete: boolean }>;
 }
 
 interface AuthContextType {
@@ -69,6 +70,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthInitialized(true);
   };
 
+  const fetchRolePermissions = async (role: string) => {
+    const { data: perms } = await supabase
+      .from('role_permissions')
+      .select('module_id, can_read, can_write, can_delete')
+      .eq('role', role);
+
+    const permissionsMap: Record<string, { read: boolean, write: boolean, delete: boolean }> = {};
+    if (perms) {
+      perms.forEach((p: any) => {
+        permissionsMap[p.module_id] = {
+          read: p.can_read,
+          write: p.can_write,
+          delete: p.can_delete
+        };
+      });
+    }
+    return permissionsMap;
+  };
+
   const fetchUserProfile = async (user: any) => {
     const { data } = await supabase
       .from('profiles')
@@ -77,10 +97,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (data) {
+      let finalName = data.full_name;
+      // Automatická oprava mena pre admina (ak predtým uviazol na defaultnom mene)
+      if (data.full_name === 'Nový Používateľ' && (data.email === 'stancikmarian8@gmail.com' || user.email === 'stancikmarian8@gmail.com')) {
+        finalName = 'Marián Stančík';
+        supabase.from('profiles').update({ full_name: finalName }).eq('id', user.id).then();
+      }
+
       // Keep email from auth if profile doesn't have it
+      const permissionsMap = await fetchRolePermissions(data.role);
+
       setCurrentUserProfile({
         ...data,
+        full_name: finalName,
         email: data.email || user.email,
+        permissions: permissionsMap
       });
     } else {
       // Check for employee invitation
@@ -107,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               address: invData.address,
               position: invData.role_title
             },
+            permissions: await fetchRolePermissions(internalRole),
           };
           
           await supabase.from('profiles').insert({
@@ -137,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone: '',
         gdpr_signed_at: null,
         metadata: {},
+        permissions: await fetchRolePermissions('klient'),
       };
       setCurrentUserProfile(defaultProf);
     }

@@ -87,6 +87,7 @@ export default function CvikyPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(30);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   
@@ -139,6 +140,11 @@ export default function CvikyPage() {
     return matchesSearch && matchesMuscle && matchesCategory;
   });
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, filterMuscle, filterCategory, sortOrder]);
+
   // Aplikácia zoradenia
   if (sortOrder === "az") {
     filteredExercises.sort((a, b) => a.name.localeCompare(b.name));
@@ -147,6 +153,8 @@ export default function CvikyPage() {
   } else if (sortOrder === "newest") {
     // keďže už sú zo Supabase zoradené podľa dátumu od najnovších, pre newest nerobíme nič
   }
+
+  const visibleExercises = filteredExercises.slice(0, visibleCount);
 
   // --- Ostatné funkcie (openCreateModal, handleAddCustom...) zostávajú rovnaké ---
 
@@ -293,15 +301,37 @@ export default function CvikyPage() {
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-cyan"></div>
         </div>
-      ) : filteredExercises.length === 0 ? (
-        <div className="bg-white p-8 rounded-2xl text-center shadow-sm">
-          <p className="text-gray-500 text-lg">Nenašli sa žiadne cviky zodpovedajúce vyhľadávaniu.</p>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredExercises.map((ex) => (
-            <ExerciseCard key={ex.id} ex={ex} onEdit={openEditModal} />
-          ))}
+        <div>
+          {filteredExercises.length === 0 ? (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-gray-500 text-lg">Nenašli sa žiadne cviky podľa zadaných kritérií.</p>
+              <button 
+                onClick={() => { setSearchQuery(""); setFilterCategory(""); setFilterMuscle(""); }}
+                className="mt-4 text-brand-cyan font-bold hover:underline"
+              >
+                Zrušiť filtre
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {visibleExercises.map((ex) => (
+                <ExerciseCard key={ex.id} ex={ex} onEdit={ex.is_custom ? openEditModal : undefined} />
+              ))}
+            </div>
+          )}
+
+          {visibleCount < filteredExercises.length && (
+            <div className="flex justify-center mt-10 mb-6">
+              <button
+                onClick={() => setVisibleCount(prev => prev + 30)}
+                className="px-8 py-3 bg-white border border-gray-200 text-brand-navy font-bold rounded-xl shadow-sm hover:shadow-md hover:border-brand-cyan hover:text-brand-cyan transition-all duration-200 flex items-center"
+              >
+                Načítať ďalšie cviky
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

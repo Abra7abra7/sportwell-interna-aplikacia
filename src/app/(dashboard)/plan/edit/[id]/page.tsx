@@ -44,6 +44,7 @@ export default function EditPlanPage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [sortOrder, setSortOrder] = useState("az");
   const [loadingData, setLoadingData] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(30);
 
   // Stavy pre pravý panel (Plán)
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
@@ -132,11 +133,17 @@ export default function EditPlanPage() {
     return matchesSearch && matchesMuscle && matchesCategory;
   });
 
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, filterMuscle, filterCategory, sortOrder]);
+
   if (sortOrder === "az") {
     filteredExercises.sort((a, b) => a.name.localeCompare(b.name));
   } else if (sortOrder === "za") {
     filteredExercises.sort((a, b) => b.name.localeCompare(a.name));
   }
+
+  const visibleExercises = filteredExercises.slice(0, visibleCount);
 
   const handleAddExerciseToPlan = (ex: Exercise) => {
     setPlanExercises(prev => [
@@ -307,7 +314,7 @@ export default function EditPlanPage() {
             {filteredExercises.length === 0 ? (
               <p className="text-center text-gray-500 py-10">Žiadne cviky sa nenašli.</p>
             ) : (
-              filteredExercises.map(ex => (
+              visibleExercises.map(ex => (
                 <div key={ex.id} className="bg-white border border-gray-100 rounded-xl p-3 flex gap-4 hover:border-brand-cyan hover:shadow-md transition-all group items-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                     {(ex.image_url || ex.gif_url) ? (
@@ -331,6 +338,15 @@ export default function EditPlanPage() {
                   </button>
                 </div>
               ))
+            )}
+            
+            {visibleCount < filteredExercises.length && (
+              <button 
+                onClick={() => setVisibleCount(p => p + 30)}
+                className="w-full py-3 mt-4 bg-white border border-gray-200 text-brand-navy text-sm font-bold rounded-xl hover:border-brand-cyan hover:text-brand-cyan transition-colors"
+              >
+                Načítať ďalšie cviky
+              </button>
             )}
           </div>
         </div>

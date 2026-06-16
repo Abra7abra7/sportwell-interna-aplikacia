@@ -57,15 +57,15 @@ function LoginForm() {
               <p className="font-bold text-lg mt-1">{authEmail}</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Zadajte 6-miestny kód</label>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Zadajte overovací kód</label>
               <input
                 type="text"
                 required
                 className="block w-full rounded-2xl border-0 bg-gray-50/50 px-4 py-4 text-center text-3xl font-black tracking-[0.3em] text-brand-navy shadow-inner focus:ring-2 focus:ring-brand-cyan focus:bg-white transition-all"
                 value={authCode}
                 onChange={(e) => setAuthCode(e.target.value)}
-                placeholder="------"
-                maxLength={6}
+                placeholder="12345678"
+                maxLength={8}
               />
             </div>
             <button
