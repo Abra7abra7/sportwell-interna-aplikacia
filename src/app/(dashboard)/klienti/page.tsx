@@ -158,9 +158,9 @@ export default function KlientiPage() {
                             e.stopPropagation();
                             setSelectedClient(client);
                           }}
-                          className="text-brand-cyan hover:text-brand-navy opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-brand-cyan hover:text-brand-navy font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-brand-light-cyan/30 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none"
                         >
-                          Priradiť zamestnanca
+                          Priradiť
                         </button>
                       </td>
                     )}
@@ -223,15 +223,15 @@ function InviteClientModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-brand-navy">Pozvať nového klienta</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto">
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
             Zadajte e-mailovú adresu klienta. Systém mu odošle <span className="font-bold text-brand-navy">Magic Link</span>, 
             ktorým sa jedným klikom prihlási a bude presmerovaný rovno na GDPR formulár a vytvorenie účtu.
@@ -322,8 +322,8 @@ function AssignmentModal({ client, onClose, currentUserProfile }: any) {
           </button>
         </div>
         
-        <div className="p-6">
-          <div className="flex items-center mb-6 p-3 bg-brand-light-cyan/30 rounded-xl">
+        <div className="p-6 overflow-y-auto flex-1 flex flex-col min-h-0">
+          <div className="flex items-center mb-6 p-3 bg-brand-light-cyan/30 rounded-xl shrink-0">
              <div className="h-10 w-10 rounded-full bg-brand-light-cyan flex items-center justify-center text-brand-navy font-bold text-sm">
                 {client.full_name.charAt(0)}
              </div>
@@ -333,14 +333,14 @@ function AssignmentModal({ client, onClose, currentUserProfile }: any) {
              </div>
           </div>
           
-          <p className="text-sm text-gray-500 mb-3 font-medium">Vyberte zamestnancov, ktorí sa o klienta starajú:</p>
+          <p className="text-sm text-gray-500 mb-3 font-medium shrink-0">Vyberte zamestnancov, ktorí sa o klienta starajú:</p>
           
           {isLoading ? (
             <div className="py-8 flex justify-center">
                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-brand-cyan"></div>
             </div>
           ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2 overflow-y-auto flex-1 pr-2 custom-scrollbar">
               {specialists.map(spec => (
                 <label key={spec.id} className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors border ${assignedIds.includes(spec.id) ? 'bg-brand-light-cyan/20 border-brand-cyan/50' : 'hover:bg-gray-50 border-gray-100'}`}>
                   <input
@@ -358,7 +358,7 @@ function AssignmentModal({ client, onClose, currentUserProfile }: any) {
             </div>
           )}
           
-          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end shrink-0">
             <button
               onClick={onClose}
               className="px-6 py-2.5 bg-brand-cyan hover:shadow-md text-brand-dark-navy rounded-xl font-bold transition-all"

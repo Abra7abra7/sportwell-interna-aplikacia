@@ -189,9 +189,9 @@ export default function CreatePlanPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden animate-in fade-in duration-500 -m-6 p-6">
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden animate-in fade-in duration-500 -m-4 md:-m-6 p-4 md:p-6">
       
-      <div className="flex justify-between items-center mb-6 shrink-0">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 shrink-0 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-brand-navy">Tvorca Tréningového Plánu</h1>
           <p className="text-gray-500 mt-1">Zostavte plán na mieru z databázy cvičení</p>
@@ -213,9 +213,9 @@ export default function CreatePlanPage() {
         </div>
       </div>
 
-      <div className="flex gap-6 h-full min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full min-h-0 overflow-y-auto lg:overflow-hidden pb-10">
         {/* Ľavý stĺpec: Databáza cvikov */}
-        <div className="w-1/2 flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+        <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[400px] lg:min-h-0 shrink-0 lg:shrink">
           <div className="p-4 border-b border-gray-100 bg-brand-off-white shrink-0">
             <h2 className="font-bold text-lg text-brand-navy mb-3">Katalóg Cvikov</h2>
             <div className="space-y-2">
@@ -282,10 +282,10 @@ export default function CreatePlanPage() {
         </div>
 
         {/* Pravý stĺpec: Aktuálny Plán */}
-        <div className="w-1/2 flex flex-col bg-white rounded-2xl shadow-sm border border-brand-light-cyan overflow-hidden">
+        <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm border border-brand-light-cyan overflow-hidden min-h-[500px] lg:min-h-0 shrink-0 lg:shrink">
           <div className="p-5 border-b border-gray-100 bg-brand-navy shrink-0 text-white space-y-4">
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-brand-cyan mb-1 uppercase tracking-wider">Názov Plánu *</label>
                 <input 
@@ -350,32 +350,32 @@ export default function CreatePlanPage() {
                         </button>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase">Série</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Série</label>
                           <input 
                             type="number" 
                             value={pe.target_sets}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_sets", parseInt(e.target.value) || 0)}
-                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0"
+                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
                           />
                         </div>
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase">Opakovania</label>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Opakovania</label>
                           <input 
                             type="text" 
                             value={pe.target_reps}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_reps", e.target.value)}
-                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0"
+                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
                           />
                         </div>
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase">Pauza (sek)</label>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Pauza (sek)</label>
                           <input 
                             type="number" 
                             value={pe.target_rest_seconds}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_rest_seconds", parseInt(e.target.value) || 0)}
-                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0"
+                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
                           />
                         </div>
                       </div>

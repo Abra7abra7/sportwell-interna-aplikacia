@@ -232,14 +232,14 @@ export default function CvikyPage() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-brand-navy">Databáza Cvikov</h1>
-          <p className="text-gray-500 mt-1">Prehľad všetkých dostupných cvičení v systéme</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-navy">Databáza Cvikov</h1>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">Prehľad všetkých dostupných cvičení v systéme</p>
         </div>
         <button 
           onClick={openCreateModal}
-          className="bg-brand-cyan text-brand-dark-navy px-4 py-2 rounded-lg font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200"
+          className="w-full sm:w-auto bg-brand-cyan text-brand-dark-navy px-4 py-3 sm:py-2 rounded-lg font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 text-center"
         >
           + Pridať vlastný cvik
         </button>
@@ -251,14 +251,14 @@ export default function CvikyPage() {
           placeholder="Vyhľadaj cvik podľa názvu alebo kategórie..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-brand-cyan transition-shadow bg-white text-brand-navy placeholder-gray-400"
+          className="w-full px-4 py-3 rounded-xl border border-gray-100 shadow-sm focus:ring-2 focus:ring-brand-cyan transition-shadow bg-white text-brand-navy placeholder-gray-400"
         />
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col md:flex-row gap-3">
           <select 
             value={filterCategory} 
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm capitalize"
+            className="w-full md:w-auto md:flex-1 px-4 py-3 md:py-2 rounded-xl border border-gray-100 shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm capitalize"
           >
             <option value="">Všetky Kategórie</option>
             {uniqueCategories.map(cat => (
@@ -269,7 +269,7 @@ export default function CvikyPage() {
           <select 
             value={filterMuscle} 
             onChange={(e) => setFilterMuscle(e.target.value)}
-            className="px-4 py-2 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm capitalize"
+            className="w-full md:w-auto md:flex-1 px-4 py-3 md:py-2 rounded-xl border border-gray-100 shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm capitalize"
           >
             <option value="">Všetky Partie (Svaly)</option>
             {uniqueMuscles.map(muscle => (
@@ -280,7 +280,7 @@ export default function CvikyPage() {
           <select 
             value={sortOrder} 
             onChange={(e) => setSortOrder(e.target.value)}
-            className="px-4 py-2 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm"
+            className="w-full md:w-auto md:flex-1 px-4 py-3 md:py-2 rounded-xl border border-gray-100 shadow-sm focus:ring-2 focus:ring-brand-cyan bg-white text-gray-600 text-sm"
           >
             <option value="newest">Najnovšie (Vlastné prvé)</option>
             <option value="az">Abecedne (A - Z)</option>

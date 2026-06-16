@@ -164,13 +164,13 @@ export default function ZamestnanciPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button 
                         onClick={() => setEditingActive(emp)} 
-                        className="text-brand-cyan hover:text-brand-navy mr-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-brand-cyan hover:text-brand-navy mr-4 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-brand-light-cyan/30 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none mb-2 md:mb-0 inline-block"
                       >
                         Upraviť
                       </button>
                       <button 
                         onClick={() => handleDeleteActive(emp)} 
-                        className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-red-400 hover:text-red-600 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-red-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none inline-block"
                       >
                         Odstrániť
                       </button>
@@ -230,13 +230,13 @@ export default function ZamestnanciPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button 
                         onClick={() => setEditingPending(inv)} 
-                        className="text-brand-cyan hover:text-brand-navy mr-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-brand-cyan hover:text-brand-navy mr-4 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-brand-light-cyan/30 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none mb-2 md:mb-0 inline-block"
                       >
                         Upraviť
                       </button>
                       <button 
                         onClick={() => handleDeletePending(inv)} 
-                        className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-red-400 hover:text-red-600 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-red-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none inline-block"
                       >
                         Zrušiť
                       </button>
@@ -308,8 +308,8 @@ function InviteEmployeeModal({ onClose, currentUserProfile }: any) {
 
   return (
     <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-brand-navy">Pozvať zamestnanca</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -400,15 +400,15 @@ function EditActiveEmployeeModal({ onClose, employee }: any) {
 
   return (
     <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-brand-navy">Úprava zamestnanca</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Meno a Priezvisko</label>
             <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} 
@@ -478,15 +478,15 @@ function EditPendingModal({ onClose, invite }: any) {
 
   return (
     <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-orange-50/50 px-6 py-5 border-b border-orange-100 flex justify-between items-center">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-orange-50/50 px-6 py-5 border-b border-orange-100 flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-orange-800">Úprava pozvánky</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Meno a Priezvisko</label>
             <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} 
