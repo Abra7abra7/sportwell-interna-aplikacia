@@ -26,6 +26,28 @@ export default function GdprPage() {
     service: "Masáž"
   });
 
+  useEffect(() => {
+    async function checkInvitation() {
+      if (!sessionUser?.email || currentUserProfile?.gdpr_signed_at) return;
+      const { data } = await supabase
+        .from('client_invitations')
+        .select('*')
+        .eq('email', sessionUser.email)
+        .single();
+        
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+          phone: data.phone || "",
+          address: data.address || ""
+        }));
+      }
+    }
+    checkInvitation();
+  }, [sessionUser, currentUserProfile]);
+
   const [consents, setConsents] = useState({
     rules: false,
     booking: false,
@@ -174,6 +196,11 @@ export default function GdprPage() {
         if (docError) {
           console.error("Document insert failed:", docError);
         }
+      }
+
+      // 4. Clean up the invitation
+      if (sessionUser?.email) {
+         await supabase.from('client_invitations').delete().eq('email', sessionUser.email);
       }
 
       // Refresh auth context

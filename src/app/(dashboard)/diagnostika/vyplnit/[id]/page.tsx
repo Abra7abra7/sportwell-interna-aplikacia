@@ -77,7 +77,7 @@ export default function VyplnitDiagnostikuPage() {
     // Check if it's an uploaded file object
     if (typeof val === 'object' && val !== null && val.fileName && val.path) {
       if (val.type?.startsWith('image/')) {
-        const { data: { publicUrl } } = supabase.storage.from('client_documents').getPublicUrl(val.path);
+        const { data: { publicUrl } } = supabase.storage.from('client_records_files').getPublicUrl(val.path);
         return (
           <div style={{ marginTop: '8px' }}>
             <img src={publicUrl} alt={val.fileName} style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #e2e8f0', objectFit: 'contain' }} />
@@ -116,7 +116,7 @@ export default function VyplnitDiagnostikuPage() {
           const filePath = `${clientId}/uploads/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
-            .from('client_documents')
+            .from('client_records_files')
             .upload(filePath, val);
 
           if (uploadError) {
@@ -131,12 +131,7 @@ export default function VyplnitDiagnostikuPage() {
             type: val.type
           };
           
-          // Also save reference in documents table
-          await supabase.from('documents').insert({
-            client_id: clientId,
-            file_name: val.name,
-            storage_path: filePath
-          });
+          // Upozornenie: Neukladáme do tabuľky 'documents', keďže ide o súčasť 'client_records'.
         }
       }
 

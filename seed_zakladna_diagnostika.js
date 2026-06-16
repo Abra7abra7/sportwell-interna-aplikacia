@@ -279,6 +279,12 @@ const schema = {
           label: "11. Chcete využívať zároveň aj služby výživového poradcu?",
           required: false,
           options: ["Áno, chcem", "Nie, nemám záujem"]
+        },
+        {
+          id: "q25_inbody_sken",
+          type: "file_upload",
+          label: "12. Priložte InBody sken alebo fotku postavy (voliteľné)",
+          required: false
         }
       ]
     }

@@ -314,7 +314,7 @@ export default function ClientProfilePage() {
                       // Check if it's an uploaded file object
                       if (typeof val === 'object' && val !== null && val.fileName && val.path) {
                         if (val.type?.startsWith('image/')) {
-                          const { data: { publicUrl } } = supabase.storage.from('client_documents').getPublicUrl(val.path);
+                          const { data: { publicUrl } } = supabase.storage.from('client_records_files').getPublicUrl(val.path);
                           return (
                             <div className="mt-2">
                               <img src={publicUrl} alt={val.fileName} className="max-h-48 rounded-lg border object-contain bg-white" />

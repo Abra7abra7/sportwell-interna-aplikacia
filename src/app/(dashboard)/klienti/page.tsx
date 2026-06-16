@@ -10,7 +10,7 @@ import { createClient } from "@/utils/supabase/client";
 export default function KlientiPage() {
   const router = useRouter();
   const { currentUserProfile } = useAuthContext();
-  const { clients, loading, error, fetchClients } = useClients();
+  const { clients, pendingClients, loading, error, fetchClients, fetchPendingClients, deletePendingClient } = useClients();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
 
@@ -19,6 +19,7 @@ export default function KlientiPage() {
   useEffect(() => {
     if (currentUserProfile && currentUserProfile.role !== "klient") {
       fetchClients(searchTerm, 0);
+      fetchPendingClients();
     }
   }, [currentUserProfile, searchTerm]);
 
@@ -172,6 +173,59 @@ export default function KlientiPage() {
         )}
       </div>
 
+      {pendingClients && pendingClients.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden animate-in fade-in duration-500">
+          <div className="bg-orange-50/50 px-6 py-5 border-b border-orange-100 flex items-center justify-between">
+            <h3 className="font-bold text-orange-800 text-lg">Čakajúci klienti na registráciu</h3>
+            <span className="bg-orange-200 text-orange-800 text-xs font-bold px-3 py-1 rounded-full">
+              {pendingClients.length}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-orange-100">
+              <thead className="bg-orange-50/30">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-orange-400 uppercase tracking-wider">Klient</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-orange-400 uppercase tracking-wider">Kontakt</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-orange-400 uppercase tracking-wider">Akcie</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-orange-50">
+                {pendingClients.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-orange-50/20 transition-colors group">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">
+                          {inv.first_name.charAt(0)}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-bold text-brand-navy">{inv.first_name} {inv.last_name}</div>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 uppercase tracking-wide mt-1">
+                            Neprihlásený
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">{inv.email}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{inv.phone || 'Bez telefónu'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button 
+                        onClick={() => deletePendingClient(inv.id)} 
+                        className="text-red-400 hover:text-red-600 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-red-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none inline-block"
+                      >
+                        Zrušiť
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {selectedClient && (
         <AssignmentModal
           client={selectedClient}
@@ -184,29 +238,35 @@ export default function KlientiPage() {
       )}
 
       {isInviteModalOpen && (
-        <InviteClientModal onClose={() => setIsInviteModalOpen(false)} />
+        <InviteClientModal onClose={() => { setIsInviteModalOpen(false); fetchPendingClients(); }} currentUserProfile={currentUserProfile} />
       )}
     </div>
   );
 }
 
-function InviteClientModal({ onClose }: { onClose: () => void }) {
+function InviteClientModal({ onClose, currentUserProfile }: { onClose: () => void, currentUserProfile: any }) {
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !firstName || !lastName) return;
     
     setStatus("loading");
     const supabase = createClient();
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.from('client_invitations').insert({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
-        }
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        address,
+        created_by: currentUserProfile?.id
       });
       
       if (error) throw error;
@@ -215,8 +275,9 @@ function InviteClientModal({ onClose }: { onClose: () => void }) {
       setTimeout(() => {
         onClose();
       }, 3000);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Supabase error:", err);
+      alert("Chyba pri ukladaní: " + (err.message || JSON.stringify(err)));
       setStatus("error");
     }
   };
@@ -233,8 +294,7 @@ function InviteClientModal({ onClose }: { onClose: () => void }) {
         
         <div className="p-6 overflow-y-auto">
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            Zadajte e-mailovú adresu klienta. Systém mu odošle <span className="font-bold text-brand-navy">Magic Link</span>, 
-            ktorým sa jedným klikom prihlási a bude presmerovaný rovno na GDPR formulár a vytvorenie účtu.
+            Vyplňte základné údaje o klientovi. Následne ho inštruujte, aby sa prihlásil na <span className="font-bold text-brand-navy">stránke SportWell zadaním tohto e-mailu</span>. Systém mu po prihlásení automaticky predvyplní GDPR formulár.
           </p>
           
           {status === "success" ? (
@@ -242,43 +302,46 @@ function InviteClientModal({ onClose }: { onClose: () => void }) {
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
               </div>
-              Pozvánka bola úspešne odoslaná!
+              Klient bol úspešne pridaný do systému!
             </div>
           ) : (
-            <form onSubmit={handleInvite}>
-              <div className="mb-4">
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Meno *</label>
+                  <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Ján" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Priezvisko *</label>
+                  <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Kováč" />
+                </div>
+              </div>
+              
+              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">E-mail klienta *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all"
-                  placeholder="klient@email.sk"
-                />
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="klient@email.sk" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Telefón</label>
+                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Adresa / Trvalý pobyt</label>
+                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
               </div>
               
               {status === "error" && (
-                <div className="mb-4 text-sm text-red-500 font-medium">
-                  Nastala chyba pri odosielaní pozvánky. Skúste to znova.
+                <div className="text-sm text-red-500 font-medium">
+                  Nastala chyba pri vytváraní klienta. Tento e-mail už možno existuje.
                 </div>
               )}
               
               <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-medium transition-colors"
-                  disabled={status === "loading"}
-                >
-                  Zrušiť
-                </button>
-                <button
-                  type="submit"
-                  disabled={status === "loading" || !email}
-                  className="px-5 py-2.5 bg-brand-cyan hover:shadow-md text-brand-dark-navy rounded-xl font-bold transition-all disabled:opacity-50"
-                >
-                  {status === "loading" ? "Odosielam..." : "Odoslať pozvánku"}
+                <button type="button" onClick={onClose} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-medium transition-colors" disabled={status === "loading"}>Zrušiť</button>
+                <button type="submit" disabled={status === "loading" || !email || !firstName || !lastName} className="px-5 py-2.5 bg-brand-cyan hover:shadow-md text-brand-dark-navy rounded-xl font-bold transition-all disabled:opacity-50">
+                  {status === "loading" ? "Ukladám..." : "Vytvoriť pred-registráciu"}
                 </button>
               </div>
             </form>

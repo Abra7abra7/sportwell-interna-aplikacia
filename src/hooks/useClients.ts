@@ -73,10 +73,30 @@ export function useClients() {
     setLoading(false);
   };
 
+  const [pendingClients, setPendingClients] = useState<any[]>([]);
+
+  const fetchPendingClients = async () => {
+    const { data } = await supabase
+      .from('client_invitations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) {
+      setPendingClients(data);
+    }
+  };
+
+  const deletePendingClient = async (id: string) => {
+    await supabase.from('client_invitations').delete().eq('id', id);
+    fetchPendingClients();
+  };
+
   return {
     clients,
+    pendingClients,
     loading,
     error,
-    fetchClients
+    fetchClients,
+    fetchPendingClients,
+    deletePendingClient
   };
 }
