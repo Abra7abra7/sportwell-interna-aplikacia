@@ -13,7 +13,10 @@ function LoginForm() {
     sessionUser,
     authEmail,
     setAuthEmail,
+    authCode,
+    setAuthCode,
     handleAuthSubmit,
+    handleVerifyOtp,
     isAuthLoading,
     magicLinkSent
   } = useAuthContext();
@@ -40,13 +43,31 @@ function LoginForm() {
       )}
 
       {magicLinkSent ? (
-        <div className="text-center space-y-4">
-          <div className="bg-brand-light-cyan text-brand-navy p-4 rounded-md">
-            <p>Odkaz na prihlásenie bol odoslaný na e-mail:</p>
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <div className="bg-brand-light-cyan text-brand-navy p-4 rounded-md text-center">
+            <p>Overovací kód bol odoslaný na e-mail:</p>
             <p className="font-bold mt-1">{authEmail}</p>
           </div>
-          <p className="text-sm text-gray-600">Kliknite na odkaz v e-maile pre prihlásenie.</p>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Zadajte kód</label>
+            <input
+              type="text"
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-center text-xl tracking-widest"
+              value={authCode}
+              onChange={(e) => setAuthCode(e.target.value)}
+              placeholder="12345678"
+              maxLength={8}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isAuthLoading || authCode.length < 6}
+            className="w-full bg-brand-cyan hover:bg-brand-navy hover:text-white text-brand-navy font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
+          >
+            {isAuthLoading ? 'Overujem...' : 'Prihlásiť sa'}
+          </button>
+        </form>
       ) : (
         <form data-testid="login-form" onSubmit={handleAuthSubmit} className="space-y-4">
           <div>
@@ -69,7 +90,7 @@ function LoginForm() {
             disabled={isAuthLoading || !authEmail}
             className="w-full bg-brand-cyan hover:bg-brand-navy hover:text-white text-brand-navy font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
           >
-            {isAuthLoading ? 'Odosielam...' : 'Poslať prihlasovací odkaz'}
+            {isAuthLoading ? 'Odosielam...' : 'Vyžiadať prihlasovací kód'}
           </button>
         </form>
       )}

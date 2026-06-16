@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 
 export interface ClientProfile {
   id: string;
-  role: 'admin' | 'trener' | 'klient';
+  role: 'admin' | 'trener' | 'klient' | 'fitness_trener' | 'fyzioterapeut' | 'maser' | 'nutricny_poradca' | 'lekar' | 'recepcia' | 'majitel';
   full_name: string;
   email?: string;
   phone: string;
@@ -29,7 +29,10 @@ interface AuthContextType {
   isAuthLoading: boolean;
   magicLinkSent: boolean;
   authInitialized: boolean;
+  authCode: string;
+  setAuthCode: React.Dispatch<React.SetStateAction<string>>;
   handleAuthSubmit: (e: React.FormEvent) => Promise<void>;
+  handleVerifyOtp: (e: React.FormEvent) => Promise<void>;
   handleSignOut: () => Promise<void>;
   updateProfilePhone: (phoneValue: string) => Promise<void>;
   fetchUserProfile: (userId: string) => Promise<void>;
@@ -136,24 +139,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const [authCode, setAuthCode] = useState('');
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthLoading(true);
 
     const { error } = await supabase.auth.signInWithOtp({
       email: authEmail,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { shouldCreateUser: true },
     });
 
     if (error) {
       defaultTriggerToast(`Chyba: ${error.message}`);
     } else {
-      setMagicLinkSent(true);
-      defaultTriggerToast('Overovací odkaz bol odoslaný na váš e-mail.');
+      setMagicLinkSent(true); // Budeme to brať ako 'otpSent'
+      defaultTriggerToast('Kód bol odoslaný na váš e-mail.');
     }
     
+    setIsAuthLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthLoading(true);
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: authEmail,
+      token: authCode,
+      type: 'email'
+    });
+    if (error) {
+      defaultTriggerToast(`Chyba: nesprávny alebo expirovaný kód.`);
+    } else {
+      defaultTriggerToast('Prihlásenie úspešné.');
+    }
     setIsAuthLoading(false);
   };
 
@@ -208,6 +227,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     magicLinkSent,
     authInitialized,
     handleAuthSubmit,
+    handleVerifyOtp,
+    authCode,
+    setAuthCode,
     handleSignOut,
     updateProfilePhone,
     fetchUserProfile,
