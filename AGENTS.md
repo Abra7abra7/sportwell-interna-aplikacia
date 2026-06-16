@@ -68,7 +68,7 @@ Mapuje klientov na konkrétnych špecialistov (trénerov/adminov), aby tréneri 
 ### F. Dokumenty a PDF (`public.documents`)
 - Evidencia zmlúv a generovaných PDF dokumentov.
 - Využíva Storage Bucket **`client_documents`**.
-- PDF súbory sa generujú na strane klienta knižnicou **pdfmake**.
+- PDF súbory sa generujú na strane klienta knižnicou **html2pdf.js** (nahradila starý pdfMake kvôli problémom so zamŕzaním v Next.js pri spracovaní veľkých base64 obrázkov).
 
 ---
 
@@ -121,6 +121,11 @@ Proces registrácie klienta je postavený na `/gdpr` stránke:
 - **PDF vygenerované zmluvy a reporty:** `client_documents` bucket (dokumenty).
 - **Fotky k diagnostikám (InBody, držanie tela):** `client_records_files` bucket (naviazané na JSON dynamických formulárov).
 - **Fotografie k cvikom a GIFy:** `exercise_images` bucket (určené pre vizuálne vysvetlenie cvikov).
+
+### E. Vizuál a UX pre klientov
+- Klientska sekcia (`/klienti` a `/klienti/[id]`) bola kompletne prerobená do moderného dizajnu využívajúceho Glassmorphism.
+- Obsahuje vlastné UI komponenty pre Taby a Akordeóny bez použitia externých ťažkých UI knižníc.
+- Na generovaných PDF dokumentoch (napríklad reporty z diagnostiky) sa štandardne zobrazuje logo a text **SportWell** spolu s adresou prevádzky pre profesionálny výstup.
 
 ---
 

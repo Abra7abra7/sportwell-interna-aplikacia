@@ -179,87 +179,116 @@ export default function ClientProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          onClick={() => router.back()}
-          className="p-2 bg-white rounded-full shadow hover:bg-gray-50"
-        >
-          &larr; Späť
-        </button>
-        <h2 className="text-2xl font-bold text-brand-navy">Karta klienta: {clientProfile.full_name}</h2>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2.5 bg-white/80 backdrop-blur-xl rounded-xl shadow-sm hover:shadow-md hover:bg-brand-cyan/10 hover:text-brand-cyan transition-all border border-gray-100"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          </button>
+          <div>
+            <h2 className="text-3xl font-bold text-brand-navy tracking-tight">{clientProfile.full_name}</h2>
+            <p className="text-gray-500 font-medium">Karta klienta a zdravotná dokumentácia</p>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50 overflow-hidden">
         {/* Tabs Header */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-100/50 bg-gray-50/30 overflow-x-auto hide-scrollbar">
           <button 
             onClick={() => setActiveTab("info")}
-            className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "info" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+            className={`flex-1 py-4 px-6 text-center font-bold text-sm transition-all whitespace-nowrap ${activeTab === "info" ? "border-b-2 border-brand-cyan text-brand-navy bg-brand-cyan/5" : "text-gray-400 hover:text-brand-navy hover:bg-white"}`}
           >
-            Osobné Údaje
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              Osobné Údaje
+            </span>
           </button>
           <button 
             onClick={() => setActiveTab("diagnostics")}
-            className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "diagnostics" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+            className={`flex-1 py-4 px-6 text-center font-bold text-sm transition-all whitespace-nowrap ${activeTab === "diagnostics" ? "border-b-2 border-brand-cyan text-brand-navy bg-brand-cyan/5" : "text-gray-400 hover:text-brand-navy hover:bg-white"}`}
           >
-            Diagnostika ({records.length})
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+              Diagnostika <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">{records.length}</span>
+            </span>
           </button>
           <button 
             onClick={() => setActiveTab("workouts")}
-            className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "workouts" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+            className={`flex-1 py-4 px-6 text-center font-bold text-sm transition-all whitespace-nowrap ${activeTab === "workouts" ? "border-b-2 border-brand-cyan text-brand-navy bg-brand-cyan/5" : "text-gray-400 hover:text-brand-navy hover:bg-white"}`}
           >
-            Tréningy ({workouts.length})
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              Tréningy <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">{workouts.length}</span>
+            </span>
           </button>
           <button 
             onClick={() => setActiveTab("documents")}
-            className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "documents" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+            className={`flex-1 py-4 px-6 text-center font-bold text-sm transition-all whitespace-nowrap ${activeTab === "documents" ? "border-b-2 border-brand-cyan text-brand-navy bg-brand-cyan/5" : "text-gray-400 hover:text-brand-navy hover:bg-white"}`}
           >
-            Dokumenty ({documents.length})
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+              Dokumenty <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">{documents.length}</span>
+            </span>
           </button>
         </div>
 
-        {/* Tabs Content */}
-        <div className="p-6">
+        <div className="p-6 md:p-8">
           {activeTab === "info" && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-brand-navy border-b pb-2">Kontaktné údaje</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Meno a Priezvisko</p>
-                  <p className="font-medium">{clientProfile.full_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">E-mail</p>
-                  <p className="font-medium">{clientProfile.email || "Nezadané"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Telefón</p>
-                  <p className="font-medium">{clientProfile.phone || "Nezadané"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Dátum narodenia</p>
-                  <p className="font-medium">
-                    {clientProfile.metadata?.birthDate 
-                      ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() 
-                      : "Nezadané"}
-                  </p>
-                </div>
-                <div className="md:col-span-2 lg:col-span-1">
-                  <p className="text-sm text-gray-500">Adresa (Trvalý pobyt)</p>
-                  <p className="font-medium">{clientProfile.metadata?.address || "Nezadané"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Záujem o službu</p>
-                  <p className="font-medium">{clientProfile.metadata?.serviceInterest || "Nezadané"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Dátum registrácie</p>
-                  <p className="font-medium">{clientProfile.created_at ? new Date(clientProfile.created_at).toLocaleDateString() : "Neznámy"}</p>
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div>
+                <h3 className="text-xl font-bold text-brand-navy mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-brand-light-cyan text-brand-cyan flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </div>
+                  Základné informácie
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-brand-off-white/50 p-6 rounded-2xl border border-gray-100">
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Meno a Priezvisko</p>
+                    <p className="font-bold text-brand-navy text-lg">{clientProfile.full_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">E-mail</p>
+                    <p className="font-bold text-brand-navy text-lg">{clientProfile.email || "Nezadané"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Telefón</p>
+                    <p className="font-bold text-brand-navy text-lg">{clientProfile.phone || "Nezadané"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Dátum narodenia</p>
+                    <p className="font-bold text-brand-navy text-lg">
+                      {clientProfile.metadata?.birthDate 
+                        ? new Date(clientProfile.metadata.birthDate).toLocaleDateString() 
+                        : "Nezadané"}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2 lg:col-span-1">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Adresa (Trvalý pobyt)</p>
+                    <p className="font-bold text-brand-navy text-lg">{clientProfile.metadata?.address || "Nezadané"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Záujem o službu</p>
+                    <p className="font-bold text-brand-cyan text-lg">{clientProfile.metadata?.serviceInterest || "Nezadané"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Dátum registrácie</p>
+                    <p className="font-bold text-brand-navy text-lg">{clientProfile.created_at ? new Date(clientProfile.created_at).toLocaleDateString() : "Neznámy"}</p>
+                  </div>
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold text-brand-navy border-b pb-2 mt-8">Stav GDPR</h3>
+              <div>
+                <h3 className="text-xl font-bold text-brand-navy mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                  </div>
+                  Právne a GDPR súhlasy
+                </h3>
               <div className="flex items-center">
                 {clientProfile.gdpr_signed_at ? (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg w-full">
@@ -297,22 +326,32 @@ export default function ClientProfilePage() {
                 )}
               </div>
             </div>
+            </div>
           )}
 
           {activeTab === "diagnostics" && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-brand-navy">História diagnostiky</h3>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-brand-navy rounded-2xl p-6 text-white shadow-md">
+                <div>
+                  <h3 className="text-xl font-bold text-brand-cyan">Diagnostika a protokoly</h3>
+                  <p className="text-gray-300 text-sm mt-1">Záznamy z vyšetrení a diagnostiky klienta</p>
+                </div>
                 <button 
                   onClick={() => router.push(`/diagnostika?clientId=${clientId}`)}
-                  className="bg-brand-light-cyan text-brand-navy px-4 py-2 rounded-lg font-medium hover:bg-brand-cyan transition-colors"
+                  className="bg-brand-cyan hover:bg-brand-cyan/90 text-brand-dark-navy px-6 py-2.5 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(0,240,255,0.39)] transition-all duration-200 whitespace-nowrap"
                 >
-                  Nová diagnostika
+                  + Nový záznam
                 </button>
               </div>
               
               {records.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Tento klient zatiaľ nemá žiadne diagnostické záznamy.</p>
+                <div className="text-center py-16 bg-gray-50/50 rounded-2xl border border-gray-100">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  </div>
+                  <p className="text-gray-500 font-medium">Tento klient zatiaľ nemá žiadne diagnostické záznamy.</p>
+                  <p className="text-sm text-gray-400 mt-1">Kliknite na tlačidlo "Nový záznam" pre vytvorenie prvého.</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {records.map(record => {
@@ -369,35 +408,41 @@ export default function ClientProfilePage() {
                     };
 
                     return (
-                      <div key={record.id} className="p-5 border rounded-xl hover:border-brand-cyan transition-colors bg-white shadow-sm">
+                      <div key={record.id} className="border border-gray-100/80 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 group">
                         <div 
-                          className="flex justify-between items-center cursor-pointer" 
+                          className="flex justify-between items-center cursor-pointer p-5 bg-brand-off-white/30 group-hover:bg-brand-off-white/80 transition-colors" 
                           onClick={toggleRecord}
                         >
-                          <div>
-                            <p className="font-bold text-lg text-brand-navy">{templateTitle}</p>
-                            <p className="text-xs text-gray-500">{new Date(record.created_at).toLocaleString()}</p>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-brand-cyan font-bold text-xl">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            </div>
+                            <div>
+                              <p className="font-bold text-lg text-brand-navy">{templateTitle}</p>
+                              <p className="text-sm font-medium text-gray-500">{new Date(record.created_at).toLocaleString()}</p>
+                            </div>
                           </div>
-                          <div className="text-brand-cyan font-bold text-xl">
-                            {isExpanded ? "−" : "+"}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-brand-cyan text-brand-navy' : 'bg-gray-100 text-gray-400 group-hover:bg-brand-light-cyan group-hover:text-brand-cyan'}`}>
+                            <svg className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                           </div>
                         </div>
                         
                         {isExpanded && (
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <div className="flex justify-end mb-4">
+                          <div className="p-6 border-t border-gray-100/80 bg-white">
+                            <div className="flex justify-end mb-6">
                               <button 
                                 onClick={() => downloadEncryptedPdf(`pdf-record-${record.id}`, `${templateTitle.replace(/\s+/g, '_')}_${clientProfile.full_name.replace(/\s+/g, '_')}.pdf`)}
-                                className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded font-medium flex items-center gap-2"
+                                className="text-sm bg-brand-navy text-white hover:bg-brand-cyan hover:text-brand-navy px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors shadow-sm"
                               >
-                                <span>📄</span> Stiahnuť PDF
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Stiahnuť PDF Report
                               </button>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {Object.entries(record.form_data || {}).map(([key, val]) => (
-                                <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                  <p className="text-xs font-bold text-brand-navy mb-1 uppercase tracking-wide">{getFieldLabel(key)}</p>
+                                <div key={key} className="bg-brand-off-white/50 p-4 rounded-xl border border-gray-100">
+                                  <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">{getFieldLabel(key)}</p>
                                   <div className="text-sm text-gray-800">{renderValue(val)}</div>
                                 </div>
                               ))}
@@ -410,7 +455,10 @@ export default function ClientProfilePage() {
                           <div id={`pdf-record-${record.id}`} style={{ backgroundColor: '#ffffff', color: '#000000', fontFamily: '"Noto Sans", sans-serif' }}>
                             <div style={{ backgroundColor: '#0A192F', color: '#ffffff', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                <img src="/sportwell-logo.svg" alt="SportWell Logo" style={{ height: '50px', width: '50px', marginBottom: '8px' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                                  <img src="/sportwell-logo.svg" alt="SportWell Logo" style={{ height: '40px', width: '40px' }} />
+                                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '0.5px' }}>SportWell</span>
+                                </div>
                                 <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '2px 0', opacity: 0.8 }}>Černyševského 30, 851 01 Bratislava</p>
                                 <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '0', opacity: 0.8 }}>IČO: 52 124 118</p>
                               </div>
@@ -457,20 +505,26 @@ export default function ClientProfilePage() {
           )}
 
           {activeTab === "workouts" && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-brand-navy">História tréningov</h3>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-brand-navy rounded-2xl p-6 text-white shadow-md">
+                <div>
+                  <h3 className="text-xl font-bold text-brand-cyan">História tréningov</h3>
+                  <p className="text-gray-300 text-sm mt-1">Prehľad absolvovaných tréningov a výkonov</p>
+                </div>
                 <button 
                   onClick={() => router.push(`/klienti/${clientId}/zaznam-treningu`)}
-                  className="bg-brand-light-cyan text-brand-navy px-4 py-2 rounded-lg font-medium hover:bg-brand-cyan transition-colors"
+                  className="bg-brand-cyan hover:bg-brand-cyan/90 text-brand-dark-navy px-6 py-2.5 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(0,240,255,0.39)] transition-all duration-200 whitespace-nowrap"
                 >
                   + Zaznamenať tréning
                 </button>
               </div>
               
               {workouts.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                  <p className="text-gray-500">Klient zatiaľ neabsolvoval žiadny tréning.</p>
+                <div className="text-center py-16 bg-gray-50/50 rounded-2xl border border-gray-100">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                  </div>
+                  <p className="text-gray-500 font-medium">Klient zatiaľ neabsolvoval žiadny tréning.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -491,31 +545,33 @@ export default function ClientProfilePage() {
                     }
 
                     return (
-                      <div key={workout.id} className="p-5 border rounded-xl hover:border-brand-cyan transition-colors bg-white shadow-sm">
+                      <div key={workout.id} className="border border-gray-100/80 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 group">
                         <div 
-                          className="flex justify-between items-center cursor-pointer" 
+                          className="flex justify-between items-center cursor-pointer p-5 bg-brand-off-white/30 group-hover:bg-brand-off-white/80 transition-colors" 
                           onClick={toggleWorkout}
                         >
-                          <div>
-                            <div className="flex items-center gap-3 mb-1">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-brand-cyan font-bold text-xl">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <div>
                               <p className="font-bold text-lg text-brand-navy">
                                 {workout.plan?.title || "Voľný tréning"}
                               </p>
-                              {/* duration_minutes bol odstránený, lebo nie je v schéme */}
+                              <p className="text-sm font-medium text-gray-500">{new Date(workout.completed_at).toLocaleString()}</p>
                             </div>
-                            <p className="text-sm text-gray-500">Dátum: {new Date(workout.completed_at).toLocaleString()}</p>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-6">
                             {workout.client_feedback_rating && (
-                              <div className="hidden sm:flex items-center gap-1">
-                                <span className="text-xs font-bold text-gray-400 uppercase mr-1">Náročnosť</span>
+                              <div className="hidden sm:flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Náročnosť</span>
                                 {[...Array(5)].map((_, i) => (
-                                  <svg key={i} className={`w-4 h-4 ${i < workout.client_feedback_rating ? "text-brand-cyan" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                  <svg key={i} className={`w-3.5 h-3.5 ${i < workout.client_feedback_rating ? "text-brand-cyan" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                                 ))}
                               </div>
                             )}
-                            <div className="text-brand-cyan font-bold text-xl w-6 text-center">
-                              {isExpanded ? "−" : "+"}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-brand-cyan text-brand-navy' : 'bg-gray-100 text-gray-400 group-hover:bg-brand-light-cyan group-hover:text-brand-cyan'}`}>
+                              <svg className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
                           </div>
                         </div>
@@ -585,9 +641,12 @@ export default function ClientProfilePage() {
           )}
 
           {activeTab === "documents" && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-brand-navy">Súbory a vyšetrenia</h3>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-brand-navy rounded-2xl p-6 text-white shadow-md">
+                <div>
+                  <h3 className="text-xl font-bold text-brand-cyan">Súbory a vyšetrenia</h3>
+                  <p className="text-gray-300 text-sm mt-1">Zmluvy, výsledky a iné nahraté dokumenty</p>
+                </div>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -597,34 +656,39 @@ export default function ClientProfilePage() {
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingDoc}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="bg-brand-cyan hover:bg-brand-cyan/90 text-brand-dark-navy px-6 py-2.5 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(0,240,255,0.39)] transition-all duration-200 whitespace-nowrap disabled:opacity-50 disabled:shadow-none flex items-center gap-2"
                 >
-                  {uploadingDoc ? 'Nahrávam...' : '+ Nahrať súbor'}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  {uploadingDoc ? 'Nahrávam...' : 'Nahrať súbor'}
                 </button>
               </div>
 
               {documents.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                  <p className="text-gray-500">Žiadne nahraté dokumenty (MR, PDF, Zmluvy)</p>
+                <div className="text-center py-16 bg-gray-50/50 rounded-2xl border border-gray-100">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  </div>
+                  <p className="text-gray-500 font-medium">Žiadne nahraté dokumenty (MR, PDF, Zmluvy)</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {documents.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center font-bold text-xs">
-                          DOC
+                    <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-100/80 rounded-xl bg-white shadow-sm hover:shadow-md hover:border-brand-cyan/50 transition-all duration-300 group">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-brand-light-cyan text-brand-cyan rounded-xl flex items-center justify-center font-bold text-xs border border-brand-cyan/20">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-brand-navy truncate max-w-[200px]">{doc.file_name}</p>
-                          <p className="text-xs text-gray-500">{new Date(doc.created_at).toLocaleDateString()}</p>
+                          <p className="text-sm font-bold text-brand-navy truncate max-w-[180px] sm:max-w-[250px]">{doc.file_name}</p>
+                          <p className="text-xs text-gray-400 font-medium mt-0.5">{new Date(doc.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => handleDownload(doc.storage_path, doc.file_name)}
-                        className="text-brand-cyan text-sm font-medium hover:underline"
+                        className="text-brand-cyan text-sm font-bold hover:bg-brand-light-cyan px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                       >
-                        Stiahnuť
+                        <span className="hidden sm:inline">Stiahnuť</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4-4m4 4V4"></path></svg>
                       </button>
                     </div>
                   ))}

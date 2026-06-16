@@ -2,20 +2,7 @@ import html2pdf from 'html2pdf.js';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import * as pdfMakeLib from "pdfmake/build/pdfmake";
-import * as pdfFontsLib from "pdfmake/build/vfs_fonts";
 
-// Ošetrenie importu pre Next.js Turbopack
-const pdfMake: any = (pdfMakeLib as any).default || pdfMakeLib;
-const pdfFonts: any = (pdfFontsLib as any).default || pdfFontsLib;
-
-if (pdfFonts && pdfFonts.pdfMake) {
-  pdfMake.vfs = pdfFonts.pdfMake.vfs;
-} else if (pdfFonts && pdfFonts.vfs) {
-  pdfMake.vfs = pdfFonts.vfs;
-} else {
-  pdfMake.vfs = pdfFonts;
-}
 
 export const generatePdfFromElement = (elementId: string, filename: string) => {
   const element = document.getElementById(elementId);
@@ -43,9 +30,8 @@ export const generatePdfBlob = async (elementId: string, password?: string): Pro
   }
 
   try {
-    console.log("Začínam html2pdf pre Blob...");
     const opt = {
-      margin: [10, 10, 10, 10], // margin in mm
+      margin: [10, 10, 10, 10] as [number, number, number, number], // margin in mm
       filename: 'document.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false },
