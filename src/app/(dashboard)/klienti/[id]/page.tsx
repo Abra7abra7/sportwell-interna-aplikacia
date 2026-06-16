@@ -68,9 +68,9 @@ export default function ClientProfilePage() {
         .from('client_workout_logs')
         .select(`
           *,
-          plan:training_plan_id(title),
+          plan:plan_id(title),
           sets:client_workout_log_sets(
-            id, set_number, reps, weight_kg, completed,
+            id, set_index, reps_performed, weight_kg,
             exercise:exercise_id(name, category)
           )
         `)
@@ -458,6 +458,12 @@ export default function ClientProfilePage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-brand-navy">História tréningov</h3>
+                <button 
+                  onClick={() => router.push(`/klienti/${clientId}/zaznam-treningu`)}
+                  className="bg-brand-light-cyan text-brand-navy px-4 py-2 rounded-lg font-medium hover:bg-brand-cyan transition-colors"
+                >
+                  + Zaznamenať tréning
+                </button>
               </div>
               
               {workouts.length === 0 ? (
@@ -493,21 +499,16 @@ export default function ClientProfilePage() {
                               <p className="font-bold text-lg text-brand-navy">
                                 {workout.plan?.title || "Voľný tréning"}
                               </p>
-                              {workout.duration_minutes && (
-                                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  {workout.duration_minutes} min
-                                </span>
-                              )}
+                              {/* duration_minutes bol odstránený, lebo nie je v schéme */}
                             </div>
                             <p className="text-sm text-gray-500">Dátum: {new Date(workout.completed_at).toLocaleString()}</p>
                           </div>
                           <div className="flex items-center gap-4">
-                            {workout.difficulty_rating && (
+                            {workout.client_feedback_rating && (
                               <div className="hidden sm:flex items-center gap-1">
                                 <span className="text-xs font-bold text-gray-400 uppercase mr-1">Náročnosť</span>
                                 {[...Array(5)].map((_, i) => (
-                                  <svg key={i} className={`w-4 h-4 ${i < workout.difficulty_rating ? "text-brand-cyan" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                  <svg key={i} className={`w-4 h-4 ${i < workout.client_feedback_rating ? "text-brand-cyan" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                                 ))}
                               </div>
                             )}
@@ -519,10 +520,10 @@ export default function ClientProfilePage() {
 
                         {isExpanded && (
                           <div className="mt-4 pt-4 border-t border-gray-100">
-                            {workout.notes && (
+                            {workout.client_notes && (
                               <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <span className="block text-xs font-bold text-gray-400 uppercase mb-1">Poznámka klienta</span>
-                                <p className="text-sm text-gray-700 italic">"{workout.notes}"</p>
+                                <p className="text-sm text-gray-700 italic">"{workout.client_notes}"</p>
                               </div>
                             )}
 
@@ -544,13 +545,13 @@ export default function ClientProfilePage() {
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {sets.sort((a,b) => a.set_number - b.set_number).map((set) => (
+                                          {sets.sort((a,b) => a.set_index - b.set_index).map((set) => (
                                             <tr key={set.id} className="border-t border-gray-100">
-                                              <td className="px-4 py-2 text-center font-medium text-gray-500">{set.set_number}.</td>
-                                              <td className="px-4 py-2 font-bold text-brand-navy">{set.reps || "-"}</td>
+                                              <td className="px-4 py-2 text-center font-medium text-gray-500">{set.set_index}.</td>
+                                              <td className="px-4 py-2 font-bold text-brand-navy">{set.reps_performed || "-"}</td>
                                               <td className="px-4 py-2 font-bold text-brand-navy">{set.weight_kg ? `${set.weight_kg} kg` : "-"}</td>
                                               <td className="px-4 py-2 text-center">
-                                                {set.completed ? (
+                                                {set.reps_performed > 0 ? (
                                                   <span className="inline-block w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
                                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                                   </span>

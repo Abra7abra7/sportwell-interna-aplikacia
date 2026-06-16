@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { Logo } from "@/components/layout/Logo";
 
 // Pomocná funkcia na ikony
 function getIconForId(id: string) {
@@ -106,8 +107,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar for Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-brand-dark-navy text-white min-h-screen shadow-2xl z-20">
         <div className="p-6">
-          <h1 className="text-3xl font-black tracking-tight text-white mb-0.5">Sport<span className="text-brand-cyan">Well</span></h1>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/10 inline-block px-2 py-0.5 rounded">
+          <Logo className="h-10 mb-2" showText={true} darkText={false} />
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/10 inline-block px-2 py-0.5 rounded ml-1">
             {currentUserProfile.role}
           </p>
         </div>
@@ -156,7 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Mobile Header (Hamburger Menu / Logo) */}
         <header className="md:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 flex justify-between items-center shadow-sm">
           <div className="flex items-center">
-            <h1 className="text-xl font-black text-brand-navy">Sport<span className="text-brand-cyan">Well</span></h1>
+            <Logo className="h-8" showText={true} darkText={true} />
           </div>
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-brand-light-cyan text-brand-navy flex items-center justify-center font-bold text-sm">
@@ -204,7 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {!isClient && mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-brand-dark-navy text-white flex flex-col animate-in slide-in-from-right-full duration-300">
           <div className="p-4 flex justify-between items-center border-b border-white/10 bg-brand-navy">
-            <h1 className="text-2xl font-black">Sport<span className="text-brand-cyan">Well</span> Menu</h1>
+            <Logo className="h-8" showText={true} darkText={false} />
             <button 
               onClick={() => setMobileMenuOpen(false)}
               className="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg"
