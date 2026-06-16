@@ -37,22 +37,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <main className="min-h-screen bg-brand-off-white">{children}</main>;
   }
 
-  const navigationItems = isClient
-    ? [
-        { id: "dashboard", label: "Dashboard", href: "/dashboard" },
-        { id: "plan", label: "Moje Cviky", href: "/plan" },
-        { id: "dokumenty", label: "Dokumenty", href: "/dokumenty" },
-      ]
-    : [
-        { id: "dashboard", label: "Dashboard", href: "/dashboard" },
-        { id: "klienti", label: "Klienti", href: "/klienti" },
-        { id: "diagnostika", label: "Diagnostika", href: "/diagnostika" },
-        { id: "plan", label: "Tréningové Plány", href: "/plan" },
-        ...(currentUserProfile.role === "admin" ? [
-          { id: "sablony", label: "Šablóny a Formuláre", href: "/sablony" },
-          { id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" }
-        ] : []),
-      ];
+  const role = currentUserProfile.role;
+  
+  // RBAC: Priradenie položiek menu podľa rolí
+  let navigationItems = [{ id: "dashboard", label: "Dashboard", href: "/dashboard" }];
+
+  if (isClient) {
+    navigationItems.push({ id: "plan", label: "Moje Cviky", href: "/plan" });
+    navigationItems.push({ id: "dokumenty", label: "Dokumenty", href: "/dokumenty" });
+  } else {
+    // Všetci zamestnanci vidia klientov
+    navigationItems.push({ id: "klienti", label: "Klienti", href: "/klienti" });
+
+    // Lekárska sekcia (Diagnostika)
+    if (["admin", "majitel", "lekar", "fyzioterapeut", "maser", "nutricny_poradca"].includes(role)) {
+      navigationItems.push({ id: "diagnostika", label: "Diagnostika", href: "/diagnostika" });
+    }
+
+    // Tréningová sekcia (Plány a Cviky)
+    if (["admin", "majitel", "lekar", "fyzioterapeut", "fitness_trener", "trener"].includes(role)) {
+      navigationItems.push({ id: "plan", label: "Tréningové Plány", href: "/plan" });
+      navigationItems.push({ id: "cviky", label: "Databáza Cvikov", href: "/cviky" });
+    }
+
+    // Správcovská sekcia
+    if (["admin", "majitel"].includes(role)) {
+      navigationItems.push({ id: "sablony", label: "Šablóny a Formuláre", href: "/sablony" });
+      navigationItems.push({ id: "zamestnanci", label: "Zamestnanci", href: "/zamestnanci" });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-brand-off-white flex flex-col md:flex-row">
@@ -65,15 +78,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </p>
         </div>
         <nav className="flex-1 px-4 space-y-2">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => router.push(item.href)}
-              className="block w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-brand-navy hover:text-brand-cyan"
-            >
-              {item.label}
-            </button>
-          ))}
+          {navigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <button
+                key={item.id}
+                onClick={() => router.push(item.href)}
+                className={`block w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-brand-cyan text-brand-dark-navy shadow-md transform scale-[1.02]"
+                    : "text-gray-300 hover:bg-brand-navy hover:text-white hover:pl-5"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
         <div className="p-4 border-t border-brand-navy">
           <div className="mb-4">
@@ -85,7 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               handleSignOut();
               router.push("/login");
             }}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors text-sm"
+            className="w-full bg-red-600/90 hover:bg-red-500 text-white font-bold py-2 px-4 rounded transition-all duration-200 shadow-sm hover:shadow-md text-sm"
           >
             Odhlásiť sa
           </button>
