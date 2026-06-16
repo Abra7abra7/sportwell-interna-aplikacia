@@ -213,7 +213,7 @@ export default function CreatePlanPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full min-h-0 overflow-y-auto lg:overflow-hidden pb-10">
+      <div className="flex flex-col-reverse lg:flex-row gap-4 lg:gap-6 h-full min-h-0 overflow-y-auto lg:overflow-hidden pb-10">
         {/* Ľavý stĺpec: Databáza cvikov */}
         <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[400px] lg:min-h-0 shrink-0 lg:shrink">
           <div className="p-4 border-b border-gray-100 bg-brand-off-white shrink-0">
