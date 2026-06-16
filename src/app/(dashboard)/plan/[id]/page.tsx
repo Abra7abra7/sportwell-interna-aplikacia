@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 
 interface PlanDetails {
   id: string;
@@ -34,9 +35,17 @@ export default function PlanDetailsPage() {
   const supabase = createClient();
   const [plan, setPlan] = useState<PlanDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchPlan() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", userData.user.id).single();
+        setRole(profile?.role || "klient");
+      }
+
       const { data, error } = await supabase
         .from("training_plans")
         .select(`
@@ -84,12 +93,43 @@ export default function PlanDetailsPage() {
     );
   }
 
+  const handleDelete = async () => {
+    if (confirm("Naozaj chcete vymazať tento tréningový plán? Táto akcia je nevratná.")) {
+      setIsDeleting(true);
+      const { error } = await supabase.from("training_plans").delete().eq("id", params.id);
+      if (error) {
+        alert("Chyba pri mazaní: " + error.message);
+        setIsDeleting(false);
+      } else {
+        router.push("/plan");
+      }
+    }
+  };
+
+  const canEdit = role === "admin" || role === "trener";
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto pb-20">
-      <button onClick={() => router.back()} className="mb-6 text-gray-500 hover:text-brand-navy flex items-center gap-2 font-medium">
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Späť
-      </button>
+      <div className="flex justify-between items-center mb-6">
+        <button onClick={() => router.back()} className="text-gray-500 hover:text-brand-navy flex items-center gap-2 font-medium">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          Späť
+        </button>
+        {canEdit && (
+          <div className="flex gap-3">
+            <Link href={`/plan/edit/${plan.id}`} className="px-4 py-2 bg-brand-light-cyan text-brand-navy font-bold rounded-lg hover:bg-brand-cyan transition-colors">
+              Upraviť
+            </Link>
+            <button 
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? "Mažem..." : "Vymazať"}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8">
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">

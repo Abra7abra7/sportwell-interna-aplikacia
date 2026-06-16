@@ -23,6 +23,8 @@ export default function ClientProfilePage() {
   // Data for tabs
   const [records, setRecords] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (clientId) {
@@ -60,6 +62,21 @@ export default function ClientProfilePage() {
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
       if (docs) setDocuments(docs);
+
+      // Fetch workouts
+      const { data: wLogs } = await supabase
+        .from('client_workout_logs')
+        .select(`
+          *,
+          plan:training_plan_id(title),
+          sets:client_workout_log_sets(
+            id, set_number, reps, weight_kg, completed,
+            exercise:exercise_id(name, category)
+          )
+        `)
+        .eq('client_id', clientId)
+        .order('completed_at', { ascending: false });
+      if (wLogs) setWorkouts(wLogs);
     }
     setLoading(false);
   };
@@ -187,6 +204,12 @@ export default function ClientProfilePage() {
             className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "diagnostics" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
           >
             Diagnostika ({records.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab("workouts")}
+            className={`flex-1 py-4 text-center font-medium text-sm transition-colors ${activeTab === "workouts" ? "border-b-2 border-brand-cyan text-brand-navy" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+          >
+            Tréningy ({workouts.length})
           </button>
           <button 
             onClick={() => setActiveTab("documents")}
@@ -423,6 +446,133 @@ export default function ClientProfilePage() {
                             </div>
                           </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "workouts" && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-brand-navy">História tréningov</h3>
+              </div>
+              
+              {workouts.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
+                  <p className="text-gray-500">Klient zatiaľ neabsolvoval žiadny tréning.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {workouts.map((workout) => {
+                    const isExpanded = expandedWorkouts[workout.id];
+                    const toggleWorkout = () => {
+                      setExpandedWorkouts(prev => ({ ...prev, [workout.id]: !prev[workout.id] }));
+                    };
+                    
+                    // Group sets by exercise
+                    const groupedSets: Record<string, any[]> = {};
+                    if (workout.sets) {
+                      workout.sets.forEach((s: any) => {
+                        const exName = s.exercise?.name || "Neznámy cvik";
+                        if (!groupedSets[exName]) groupedSets[exName] = [];
+                        groupedSets[exName].push(s);
+                      });
+                    }
+
+                    return (
+                      <div key={workout.id} className="p-5 border rounded-xl hover:border-brand-cyan transition-colors bg-white shadow-sm">
+                        <div 
+                          className="flex justify-between items-center cursor-pointer" 
+                          onClick={toggleWorkout}
+                        >
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <p className="font-bold text-lg text-brand-navy">
+                                {workout.plan?.title || "Voľný tréning"}
+                              </p>
+                              {workout.duration_minutes && (
+                                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {workout.duration_minutes} min
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">Dátum: {new Date(workout.completed_at).toLocaleString()}</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {workout.difficulty_rating && (
+                              <div className="hidden sm:flex items-center gap-1">
+                                <span className="text-xs font-bold text-gray-400 uppercase mr-1">Náročnosť</span>
+                                {[...Array(5)].map((_, i) => (
+                                  <svg key={i} className={`w-4 h-4 ${i < workout.difficulty_rating ? "text-brand-cyan" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                ))}
+                              </div>
+                            )}
+                            <div className="text-brand-cyan font-bold text-xl w-6 text-center">
+                              {isExpanded ? "−" : "+"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="mt-4 pt-4 border-t border-gray-100">
+                            {workout.notes && (
+                              <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <span className="block text-xs font-bold text-gray-400 uppercase mb-1">Poznámka klienta</span>
+                                <p className="text-sm text-gray-700 italic">"{workout.notes}"</p>
+                              </div>
+                            )}
+
+                            {Object.keys(groupedSets).length > 0 ? (
+                              <div className="space-y-4">
+                                {Object.entries(groupedSets).map(([exName, sets]) => (
+                                  <div key={exName} className="border border-gray-100 rounded-xl overflow-hidden">
+                                    <div className="bg-brand-off-white px-4 py-2 border-b border-gray-100">
+                                      <h4 className="font-bold text-brand-navy">{exName}</h4>
+                                    </div>
+                                    <div className="p-0">
+                                      <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                                          <tr>
+                                            <th className="px-4 py-2 w-16 text-center">Séria</th>
+                                            <th className="px-4 py-2">Opakovania</th>
+                                            <th className="px-4 py-2">Váha (kg)</th>
+                                            <th className="px-4 py-2 w-24 text-center">Stav</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {sets.sort((a,b) => a.set_number - b.set_number).map((set) => (
+                                            <tr key={set.id} className="border-t border-gray-100">
+                                              <td className="px-4 py-2 text-center font-medium text-gray-500">{set.set_number}.</td>
+                                              <td className="px-4 py-2 font-bold text-brand-navy">{set.reps || "-"}</td>
+                                              <td className="px-4 py-2 font-bold text-brand-navy">{set.weight_kg ? `${set.weight_kg} kg` : "-"}</td>
+                                              <td className="px-4 py-2 text-center">
+                                                {set.completed ? (
+                                                  <span className="inline-block w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                                  </span>
+                                                ) : (
+                                                  <span className="inline-block w-5 h-5 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                  </span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 text-sm">Pre tento tréning neboli zaznamenané žiadne série.</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
