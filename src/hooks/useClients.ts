@@ -6,6 +6,7 @@ import { ClientProfile } from '@/components/providers/AuthProvider';
 
 export interface ExtendedClientProfile extends ClientProfile {
   assignments?: string[];
+  plansCount?: number;
 }
 
 export function useClients() {
@@ -35,13 +36,17 @@ export function useClients() {
     if (fetchErr) {
       setError(`Chyba načítania klientov: ${fetchErr.message}`);
     } else if (data && data.length > 0) {
-      // Fetch all assignments for the returned clients
+      // Fetch all assignments and plans for the returned clients
       const clientIds = data.map((c: any) => c.id);
       
-      // We fetch all assignments and all trainers to map their names
-      const [{ data: assignments }, { data: trainers }] = await Promise.all([
+      const [
+        { data: assignments }, 
+        { data: trainers },
+        { data: plans }
+      ] = await Promise.all([
         supabase.from('client_specialist_assignments').select('client_id, specialist_id').in('client_id', clientIds),
-        supabase.from('profiles').select('id, full_name').eq('role', 'trener')
+        supabase.from('profiles').select('id, full_name').eq('role', 'trener'),
+        supabase.from('training_plans').select('client_id').in('client_id', clientIds)
       ]);
 
       const trainerMap = new Map((trainers || []).map((t: any) => [t.id, t.full_name]));
@@ -52,9 +57,12 @@ export function useClients() {
           .map((a: any) => trainerMap.get(a.specialist_id))
           .filter(Boolean) as string[];
           
+        const theirPlansCount = (plans || []).filter((p: any) => p.client_id === client.id).length;
+
         return {
           ...client,
-          assignments: theirAssignments
+          assignments: theirAssignments,
+          plansCount: theirPlansCount
         };
       });
 

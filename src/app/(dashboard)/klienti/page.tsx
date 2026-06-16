@@ -23,27 +23,37 @@ export default function KlientiPage() {
   }, [currentUserProfile, searchTerm]);
 
   if (currentUserProfile?.role === "klient") {
-    return <div className="text-red-500">Nemáte prístup do tejto sekcie.</div>;
+    return (
+      <div className="flex justify-center py-20">
+        <div className="bg-red-50 text-red-600 px-6 py-4 rounded-xl font-medium border border-red-100">
+          Nemáte prístup do tejto sekcie.
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h2 className="text-2xl font-bold text-brand-navy">Správa Klientov</h2>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-brand-navy">Správa Klientov</h1>
+          <p className="text-gray-500 mt-1">Prehľad všetkých klientov a ich priradených trénerov</p>
+        </div>
         <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             <input
               type="text"
               placeholder="Hľadať klienta..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-4 pr-10 py-2 border rounded-full focus:ring-brand-cyan focus:border-brand-cyan shadow-sm"
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all shadow-sm"
             />
           </div>
           {currentUserProfile?.role === 'admin' && (
             <button
               onClick={() => setIsInviteModalOpen(true)}
-              className="bg-brand-cyan text-brand-navy px-4 py-2 rounded-full font-bold shadow hover:bg-[#00d0e0] transition-colors whitespace-nowrap"
+              className="bg-brand-cyan hover:scale-105 text-brand-dark-navy px-5 py-2.5 rounded-xl font-bold shadow-sm transition-all duration-200 whitespace-nowrap"
             >
               + Pozvať klienta
             </button>
@@ -51,81 +61,114 @@ export default function KlientiPage() {
         </div>
       </div>
 
-      {error && <div className="p-4 bg-red-100 text-red-700 rounded-md">{error}</div>}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl">
+          {error}
+        </div>
+      )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-bold text-brand-navy text-lg">Zoznam klientov</h3>
+          <span className="bg-brand-cyan/20 text-brand-dark-navy text-xs font-bold px-3 py-1 rounded-full">
+            {clients.length}
+          </span>
+        </div>
+
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Načítavam klientov...</div>
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-cyan"></div>
+          </div>
         ) : clients.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Žiadni klienti nenašli.</div>
+          <div className="p-10 text-center text-gray-500">
+            <svg className="w-12 h-12 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            Nenašli sa žiadni klienti.
+          </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meno</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email / Telefón</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priradení zamestnanci</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GDPR Stav</th>
-                {currentUserProfile?.role === 'admin' && <th className="px-6 py-3"></th>}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {clients.map((client) => (
-                <tr 
-                  key={client.id} 
-                  className="hover:bg-brand-light-cyan/20 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/klienti/${client.id}`)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-brand-navy">{client.full_name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{client.email || 'N/A'}</div>
-                    <div className="text-sm text-gray-400">{client.phone || 'N/A'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {/* @ts-ignore */}
-                    {client.assignments && client.assignments.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {/* @ts-ignore */}
-                        {client.assignments.map((specName, i) => (
-                          <span key={i} className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {specName}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">Nepriradený</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {client.gdpr_signed_at ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Podpísané
-                      </span>
-                    ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                        Chýba
-                      </span>
-                    )}
-                  </td>
-                  {currentUserProfile?.role === 'admin' && (
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedClient(client);
-                        }}
-                        className="text-brand-cyan hover:text-brand-navy"
-                      >
-                        Priradiť Zamestnanca
-                      </button>
-                    </td>
-                  )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-gray-50/50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Klient</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Kontakt</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Priradený personál</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Aktivita</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">GDPR Stav</th>
+                  {currentUserProfile?.role === 'admin' && <th className="px-6 py-4"></th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-50">
+                {clients.map((client) => (
+                  <tr 
+                    key={client.id} 
+                    className="hover:bg-brand-off-white cursor-pointer transition-colors group"
+                    onClick={() => router.push(`/klienti/${client.id}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-brand-light-cyan flex items-center justify-center text-brand-navy font-bold text-sm">
+                          {client.full_name.charAt(0)}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-bold text-brand-navy group-hover:text-brand-cyan transition-colors">{client.full_name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">{client.email || 'Bez e-mailu'}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{client.phone || 'Bez telefónu'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {/* @ts-ignore */}
+                      {client.assignments && client.assignments.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {/* @ts-ignore */}
+                          {client.assignments.map((specName, i) => (
+                            <span key={i} className="px-2 py-0.5 inline-flex text-xs font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                              {specName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Nepriradený</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                       <span className="px-2.5 py-1 inline-flex text-xs font-bold rounded-full bg-purple-50 text-purple-700 border border-purple-100 items-center">
+                         <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                         {/* @ts-ignore */}
+                         {client.plansCount || 0} plánov
+                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {client.gdpr_signed_at ? (
+                        <span className="px-2.5 py-1 inline-flex text-xs font-bold rounded-full bg-green-50 text-green-700 border border-green-100">
+                          Podpísané
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 inline-flex text-xs font-bold rounded-full bg-red-50 text-red-700 border border-red-100">
+                          Chýba podpis
+                        </span>
+                      )}
+                    </td>
+                    {currentUserProfile?.role === 'admin' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedClient(client);
+                          }}
+                          className="text-brand-cyan hover:text-brand-navy opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Priradiť zamestnanca
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -179,57 +222,68 @@ function InviteClientModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 className="text-xl font-bold text-brand-navy mb-4">Pozvať nového klienta</h3>
-        <p className="text-sm text-gray-500 mb-6">
-          Zadajte e-mailovú adresu klienta. Systém mu odošle magický odkaz (Magic Link), 
-          ktorým sa jedným klikom prihlási a bude presmerovaný rovno na GDPR formulár a vytvorenie účtu.
-        </p>
+    <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-brand-navy">Pozvať nového klienta</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
         
-        {status === "success" ? (
-          <div className="p-4 bg-green-50 text-green-700 rounded-lg text-center font-medium border border-green-200">
-            ✅ Pozvánka bola úspešne odoslaná!
-          </div>
-        ) : (
-          <form onSubmit={handleInvite}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail klienta</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-brand-cyan focus:border-brand-cyan"
-                placeholder="klient@email.sk"
-              />
-            </div>
-            
-            {status === "error" && (
-              <div className="mb-4 text-sm text-red-500 font-medium">
-                Nastala chyba pri odosielaní pozvánky. Skúste to znova.
+        <div className="p-6">
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            Zadajte e-mailovú adresu klienta. Systém mu odošle <span className="font-bold text-brand-navy">Magic Link</span>, 
+            ktorým sa jedným klikom prihlási a bude presmerovaný rovno na GDPR formulár a vytvorenie účtu.
+          </p>
+          
+          {status === "success" ? (
+            <div className="p-4 bg-green-50 text-green-700 rounded-xl text-center font-bold border border-green-100 flex flex-col items-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
               </div>
-            )}
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
-                disabled={status === "loading"}
-              >
-                Zrušiť
-              </button>
-              <button
-                type="submit"
-                disabled={status === "loading" || !email}
-                className="px-4 py-2 bg-brand-cyan hover:bg-[#00d0e0] text-brand-navy rounded-lg font-bold transition-colors disabled:opacity-50"
-              >
-                {status === "loading" ? "Odosielam..." : "Odoslať pozvánku"}
-              </button>
+              Pozvánka bola úspešne odoslaná!
             </div>
-          </form>
-        )}
+          ) : (
+            <form onSubmit={handleInvite}>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">E-mail klienta *</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all"
+                  placeholder="klient@email.sk"
+                />
+              </div>
+              
+              {status === "error" && (
+                <div className="mb-4 text-sm text-red-500 font-medium">
+                  Nastala chyba pri odosielaní pozvánky. Skúste to znova.
+                </div>
+              )}
+              
+              <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-medium transition-colors"
+                  disabled={status === "loading"}
+                >
+                  Zrušiť
+                </button>
+                <button
+                  type="submit"
+                  disabled={status === "loading" || !email}
+                  className="px-5 py-2.5 bg-brand-cyan hover:shadow-md text-brand-dark-navy rounded-xl font-bold transition-all disabled:opacity-50"
+                >
+                  {status === "loading" ? "Odosielam..." : "Odoslať pozvánku"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -259,39 +313,61 @@ function AssignmentModal({ client, onClose, currentUserProfile }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 className="text-xl font-bold text-brand-navy mb-4">Priradiť zamestnancov</h3>
-        <p className="text-sm text-gray-500 mb-4">Klient: {client.full_name}</p>
-        
-        {isLoading ? (
-          <div className="py-4 text-center text-gray-500">Načítavam zamestnancov...</div>
-        ) : (
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {specialists.map(spec => (
-              <label key={spec.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={assignedIds.includes(spec.id)}
-                  onChange={() => handleToggle(spec.id)}
-                  className="h-4 w-4 text-brand-cyan focus:ring-brand-cyan border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">{spec.full_name}</span>
-              </label>
-            ))}
-          </div>
-        )}
-        
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded font-medium transition-colors"
-          >
-            Hotovo
+    <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-xl font-bold text-brand-navy">Priradenie personálu</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
+        </div>
+        
+        <div className="p-6">
+          <div className="flex items-center mb-6 p-3 bg-brand-light-cyan/30 rounded-xl">
+             <div className="h-10 w-10 rounded-full bg-brand-light-cyan flex items-center justify-center text-brand-navy font-bold text-sm">
+                {client.full_name.charAt(0)}
+             </div>
+             <div className="ml-3">
+               <div className="text-xs text-gray-500 uppercase tracking-wider font-bold">Klient</div>
+               <div className="font-bold text-brand-navy">{client.full_name}</div>
+             </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 mb-3 font-medium">Vyberte zamestnancov, ktorí sa o klienta starajú:</p>
+          
+          {isLoading ? (
+            <div className="py-8 flex justify-center">
+               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-brand-cyan"></div>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+              {specialists.map(spec => (
+                <label key={spec.id} className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors border ${assignedIds.includes(spec.id) ? 'bg-brand-light-cyan/20 border-brand-cyan/50' : 'hover:bg-gray-50 border-gray-100'}`}>
+                  <input
+                    type="checkbox"
+                    checked={assignedIds.includes(spec.id)}
+                    onChange={() => handleToggle(spec.id)}
+                    className="h-5 w-5 text-brand-cyan focus:ring-brand-cyan border-gray-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-gray-800 block">{spec.full_name}</span>
+                    <span className="text-xs text-gray-500">{spec.metadata?.position || 'Tréner'}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+          
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-brand-cyan hover:shadow-md text-brand-dark-navy rounded-xl font-bold transition-all"
+            >
+              Hotovo
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -92,10 +92,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (invData) {
-          // Found invitation, create employee profile
+          let internalRole = 'trener';
+          if (invData.role_title === 'Administrátor') internalRole = 'admin';
+          if (invData.role_title === 'Recepcia') internalRole = 'recepcia';
+          
           const newProfile: ClientProfile = {
             id: user.id,
-            role: 'trener', // All specialists are 'trener'
+            role: internalRole as any, // All specialists are 'trener', admins are 'admin'
             full_name: invData.full_name,
             email: user.email,
             phone: invData.phone || '',
