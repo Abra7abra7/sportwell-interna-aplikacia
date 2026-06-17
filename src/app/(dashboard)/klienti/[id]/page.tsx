@@ -19,6 +19,12 @@ export default function ClientProfilePage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [expandedRecords, setExpandedRecords] = useState<Record<string, boolean>>({});
+  const [showGdprModal, setShowGdprModal] = useState(false);
+  const [gdprFormData, setGdprFormData] = useState({
+    marketingConsent: false,
+    metaConsent: false,
+    diagnosticsConsent: false
+  });
   
   // Data for tabs
   const [records, setRecords] = useState<any[]>([]);
@@ -170,6 +176,41 @@ export default function ClientProfilePage() {
     }
   };
 
+  const handleUpdateGdpr = async () => {
+    if (!clientProfile) return;
+    const newMetadata = {
+      ...clientProfile.metadata,
+      ...gdprFormData
+    };
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ metadata: newMetadata })
+      .eq('id', clientId);
+      
+    if (!error) {
+      setClientProfile({ ...clientProfile, metadata: newMetadata });
+      setShowGdprModal(false);
+      alert("Súhlasy boli úspešne aktualizované.");
+    } else {
+      alert("Chyba pri ukladaní súhlasov: " + error.message);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (prompt(`TOTO JE NEVRATNÁ AKCIA (Právo na zabudnutie)!\nZmažú sa všetky osobné údaje, tréningy, diagnostiky a dokumenty klienta.\n\nAk ste si istý, napíšte meno klienta "${clientProfile?.full_name}":`) !== clientProfile?.full_name) {
+      return;
+    }
+    
+    const { error } = await supabase.rpc('delete_user_by_admin', { user_id: clientId });
+    if (error) {
+      alert("Chyba pri odstraňovaní klienta: " + error.message);
+    } else {
+      alert("Klient bol úspešne vymazaný (Právo na zabudnutie uplatnené).");
+      router.push('/klienti');
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Načítavam kartu klienta...</div>;
   }
@@ -297,6 +338,19 @@ export default function ClientProfilePage() {
                         <p className="text-green-700 font-bold">Podpísané / Súhlas udelený</p>
                         <p className="text-sm text-green-600">Dátum: {new Date(clientProfile.gdpr_signed_at).toLocaleString()}</p>
                       </div>
+                      <button 
+                        onClick={() => {
+                          setGdprFormData({
+                            marketingConsent: !!clientProfile.metadata?.marketingConsent,
+                            metaConsent: !!clientProfile.metadata?.metaConsent,
+                            diagnosticsConsent: !!clientProfile.metadata?.diagnosticsConsent
+                          });
+                          setShowGdprModal(true);
+                        }}
+                        className="text-sm bg-white border border-green-200 text-green-700 hover:bg-green-100 font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors"
+                      >
+                        Spravovať súhlasy
+                      </button>
                     </div>
                     <div className="space-y-2 mt-2">
                       <p className="text-sm text-green-800 font-medium">Prehľad udelených súhlasov:</p>
@@ -326,6 +380,20 @@ export default function ClientProfilePage() {
                 )}
               </div>
             </div>
+              {(currentUserProfile?.role === "admin" || currentUserProfile?.role === "majitel") && (
+                <div className="mt-8 pt-6 border-t border-red-100 flex justify-between items-center">
+                  <div>
+                    <h4 className="text-red-700 font-bold">Uplatniť právo na zabudnutie</h4>
+                    <p className="text-sm text-red-500">Natrvalo a nenávratne vymaže klienta zo systému.</p>
+                  </div>
+                  <button 
+                    onClick={handleDeleteClient}
+                    className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 px-4 py-2 rounded-xl font-bold transition-all shadow-sm"
+                  >
+                    Vymazať klienta
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -698,6 +766,58 @@ export default function ClientProfilePage() {
           )}
         </div>
       </div>
+
+      {showGdprModal && (
+        <div className="fixed inset-0 bg-brand-dark-navy/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-brand-off-white px-6 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
+              <h3 className="text-xl font-bold text-brand-navy">Správa súhlasov</h3>
+              <button onClick={() => setShowGdprModal(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600 mb-4">Môžete upraviť voliteľné súhlasy klienta na základe jeho požiadavky.</p>
+              
+              <label className="flex items-center space-x-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={gdprFormData.marketingConsent}
+                  onChange={(e) => setGdprFormData({...gdprFormData, marketingConsent: e.target.checked})}
+                  className="w-5 h-5 text-brand-cyan rounded border-gray-300 focus:ring-brand-cyan" 
+                />
+                <span className="font-medium text-brand-navy">Marketing a Newsletter</span>
+              </label>
+
+              <label className="flex items-center space-x-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={gdprFormData.metaConsent}
+                  onChange={(e) => setGdprFormData({...gdprFormData, metaConsent: e.target.checked})}
+                  className="w-5 h-5 text-brand-cyan rounded border-gray-300 focus:ring-brand-cyan" 
+                />
+                <span className="font-medium text-brand-navy">Meta Lookalike reklamné cielenie</span>
+              </label>
+
+              <label className="flex items-center space-x-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={gdprFormData.diagnosticsConsent}
+                  onChange={(e) => setGdprFormData({...gdprFormData, diagnosticsConsent: e.target.checked})}
+                  className="w-5 h-5 text-brand-cyan rounded border-gray-300 focus:ring-brand-cyan" 
+                />
+                <span className="font-medium text-brand-navy">Spracovanie výsledkov diagnostiky</span>
+              </label>
+
+              <div className="pt-6 mt-6 border-t border-gray-100 flex justify-end space-x-3">
+                <button onClick={() => setShowGdprModal(false)} className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors">Zrušiť</button>
+                <button onClick={handleUpdateGdpr} className="px-5 py-2.5 bg-brand-cyan text-brand-dark-navy rounded-xl font-bold hover:shadow-md transition-all">Uložiť súhlasy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

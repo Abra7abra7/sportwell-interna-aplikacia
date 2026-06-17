@@ -75,4 +75,32 @@ Ak chceš skutočnú istotu, do projektu pridáme automatické testy. Slúžia a
 2.  **Založenie Produkčnej Databázy:** Oddeliť "hracie" (vývojové) prostredie v Supabase od ostrej produkcie, aby sa testovacie dáta nemiešali s reálnymi klientmi.
 3.  **Beta Test s personálom:** Pustiť do toho najskôr 2-3 tvojich trénerov a pár "známych" klientov na 2 týždne, aby to aktívne používali a hľadali nezrovnalosti.
 4.  **Integrácia Sentry:** Zapojiť Error Tracking (Sentry), aby si videl tiché chyby.
-5.  **Spustenie "Ostrého" režimu** a prechod celej prevádzky na nový systém.
+7.  **Spustenie "Ostrého" režimu** a prechod celej prevádzky na nový systém.
+
+---
+
+## 6. Potenciálne funkcie a vylepšenia (Backlog)
+*   **GDPR Soft Delete (Ochranná lehota 30 dní):** Namiesto okamžitého zmazania klienta (Právo na zabudnutie) zavedieme 30-dňovú lehotu. Počas nej bude účet len skrytý (deaktivovaný z pohľadu trénerov a systému) s možnosťou obnovenia administrátorom v prípade prekliku.
+*   **Hromadný e-mailový marketing:** Automatické prepojenie zoznamu GDPR súhlasov (newsletter) na systémy ako Mailchimp cez API.
+
+---
+
+## 7. Analytika a Vyťažovanie dát (Data Mining & AI)
+Správne podotýkate, že sedíte na zlatej bani dát o zdraví, kondícii a správaní Vašich klientov. Keďže sú teraz dáta uložené štruktúrovane v PostgreSQL (a nie v starom WordPresse), možnosti sú obrovské. Tu je zoznam, ako z toho môže majiteľ vytlačiť maximum:
+
+### A. Biznis inteligencia pre Majiteľa
+1.  **Dashboard Vyťaženosti a Retencie:** 
+    *   Sledovanie toho, ktorý tréner má najvyššiu retenciu (t.j. koľko z jeho priradených klientov u neho zostáva cvičiť dlhšie ako 3 mesiace).
+    *   Aké časy počas dňa sú najviac a najmenej vyťažené (tzv. "Heatmap" prevádzky).
+2.  **Churn Prediction (Predikcia odchodov cez AI):** 
+    *   Algoritmus dokáže zistiť vzorec správania, keď klient začína "poľavovať" (predlžujú sa rozostupy medzi tréningami, klesá počet zadaných sérií v appke). Systém automaticky upozorní recepciu alebo manažéra: *"Pozor, klient Ján Novák stráca motiváciu, pošlite mu motivačnú zľavu na masáž."*
+3.  **Cross-selling a Upselling:** 
+    *   Ak klient dlhodobo navštevuje "Funkčný tréning", ale podľa záznamov nikdy nebol na Masáži alebo odbornej diagnostike, systém Vám po 10. tréningu navrhne ponúknuť mu doplnkovú službu so zľavou.
+
+### B. Pridaná hodnota pre Klienta a Trénera
+1.  **AI Asistent pre Tréningové Plány:** 
+    *   Keď bude mať databáza stovky odjazdených tréningových plánov a diagnostík, vieme na ňu napojiť LLM (AI). Tréner si otvorí klienta a povie: *"Vygeneruj tréningový plán na chrbát, pričom vezmi do úvahy, že klient má podľa FMS diagnostiky zhoršenú mobilitu ramena."* AI z Vašej databázy cvikov vyberie tie najbezpečnejšie a navrhne plán, ktorý tréner už len skontroluje.
+2.  **Klientsky Zdravotný Semafor:** 
+    *   Z dát z inBody formulárov a pravidelných meraní vieme do klientskeho mobilného rozhrania nakresliť nádherné, interaktívne grafy progresu (napr. úbytok tuku vs. nárast svalovej hmoty). Tým klientovi vizuálne dokazujete, že investícia do Vašich trénerov sa mu reálne vracia na zdraví.
+
+Všetky tieto "nadstavby" sa dajú do Supabase dorobiť v budúcnosti bez toho, aby to akokoľvek narušilo alebo spomalilo aktuálny základ aplikácie. Dáta sa z databázy budú len "čítať" na pozadí.
