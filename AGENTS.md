@@ -141,7 +141,9 @@ Proces registrácie klienta je postavený na `/gdpr` stránke:
       /dokumenty        # Zmluvy a PDF reporty
       /gdpr             # Onboarding pre nových/predregistrovaných klientov
       /klienti          # Zoznam klientov, čakáreň a ich profily (Tabbed view)
+      /nastavenia       # Správa prístupových práv a modulov (Admin)
       /plan             # Tréningové plány
+      /sablony          # Správa dynamických šablón pre diagnostiku
       /zamestnanci      # Správa zamestnancov a pozvánok (Admin)
       /cviky            # Správa databázy rehabilitačných cvikov
     globals.css         # Globálne štýly (Tailwind premenné a UI farby)
