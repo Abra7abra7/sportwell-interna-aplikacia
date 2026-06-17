@@ -55,7 +55,7 @@ export default function ZamestnanciPage() {
   }, [currentUserProfile]);
 
   const handleDeleteActive = async (emp: any) => {
-    if (!confirm(`Naozaj chcete odstrániť zamestnanca ${emp.full_name}? Bude mu odobraný prístup do systému.`)) return;
+    if (!confirm(`Naozaj chcete odstrániť zamestnanca ${emp.full_name}? Bude mu odobraný prístup do systému a zmenená rola na klient.`)) return;
     
     const { error } = await supabase
       .from('profiles')
@@ -66,6 +66,20 @@ export default function ZamestnanciPage() {
       .eq('id', emp.id);
       
     if (error) alert("Chyba pri odstraňovaní zamestnanca: " + error.message);
+    else fetchEmployees();
+  };
+
+  const handleToggleActive = async (emp: any) => {
+    const isCurrentlyActive = emp.is_active ?? true;
+    const actionText = isCurrentlyActive ? 'deaktivovať' : 'aktivovať';
+    if (!confirm(`Naozaj chcete ${actionText} zamestnanca ${emp.full_name}?`)) return;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: !isCurrentlyActive })
+      .eq('id', emp.id);
+      
+    if (error) alert(`Chyba pri aktualizácii: ` + error.message);
     else fetchEmployees();
   };
 
@@ -136,7 +150,7 @@ export default function ZamestnanciPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-50">
                 {employees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-brand-off-white transition-colors group">
+                  <tr key={emp.id} className={`hover:bg-brand-off-white transition-colors group ${emp.is_active === false ? 'opacity-60 bg-gray-50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-brand-light-cyan flex items-center justify-center text-brand-navy font-bold text-sm">
@@ -145,8 +159,13 @@ export default function ZamestnanciPage() {
                         <div className="ml-4">
                           <div className="text-sm font-bold text-brand-navy">{emp.full_name}</div>
                           {emp.role === 'admin' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wide mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wide mt-1 mr-2">
                               Admin
+                            </span>
+                          )}
+                          {emp.is_active === false && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 uppercase tracking-wide mt-1">
+                              Deaktivovaný
                             </span>
                           )}
                         </div>
@@ -167,6 +186,12 @@ export default function ZamestnanciPage() {
                         className="text-brand-cyan hover:text-brand-navy mr-4 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-brand-light-cyan/30 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none mb-2 md:mb-0 inline-block"
                       >
                         Upraviť
+                      </button>
+                      <button 
+                        onClick={() => handleToggleActive(emp)} 
+                        className="text-orange-400 hover:text-orange-600 mr-4 font-bold opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-orange-50 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg md:rounded-none mb-2 md:mb-0 inline-block"
+                      >
+                        {emp.is_active === false ? 'Aktivovať' : 'Deaktivovať'}
                       </button>
                       <button 
                         onClick={() => handleDeleteActive(emp)} 

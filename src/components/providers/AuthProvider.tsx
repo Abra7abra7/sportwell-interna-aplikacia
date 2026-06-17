@@ -10,6 +10,7 @@ export interface ClientProfile {
   email?: string;
   phone: string;
   gdpr_signed_at: string | null;
+  is_active?: boolean;
   created_at?: string;
   metadata: {
     marketing_opt_in?: boolean;
@@ -97,6 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (data) {
+      if (data.is_active === false) {
+        await supabase.auth.signOut();
+        setSessionUser(null);
+        setCurrentUserProfile(null);
+        defaultTriggerToast('Tento účet bol deaktivovaný.');
+        return;
+      }
+
       let finalName = data.full_name;
       // Automatická oprava mena pre admina (ak predtým uviazol na defaultnom mene)
       if (data.full_name === 'Nový Používateľ' && (data.email === 'stancikmarian8@gmail.com' || user.email === 'stancikmarian8@gmail.com')) {
