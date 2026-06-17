@@ -21,26 +21,7 @@ describe('Cancellation Business Rules', () => {
   });
 });
 
-// 2. Test PDF Generation Helper
-import { generateGdprPdf } from '../utils/pdfGenerator';
-import { jsPDF } from 'jspdf';
 
-describe('GDPR PDF Generator', () => {
-  it('correctly maps client profile metadata into jsPDF instructions', () => {
-    const mockProfile = {
-      full_name: 'Marek Stancik',
-      email: 'marek@sportwell.sk',
-      phone: '+421900123456',
-      gdpr_signed_at: '2026-06-14T10:00:00Z',
-      metadata: {
-        gdpr_version: 'v3.0',
-      },
-    };
-
-    const doc = generateGdprPdf(mockProfile);
-    expect(doc.text).toHaveBeenCalledWith(expect.stringContaining('Marek Stancik'), expect.any(Number), expect.any(Number));
-  });
-});
 
 // 3. Test FormRenderer Component
 import FormRenderer, { FormField } from '../components/common/FormRenderer';

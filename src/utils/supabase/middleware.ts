@@ -35,7 +35,23 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh user session if expired
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  // Ak nie je prihlásený a nejde na /login, presmeruj na /login
+  if (!user && pathname !== '/login') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Ak je prihlásený a ide na /login, presmeruj na /dashboard
+  if (user && pathname === '/login') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }

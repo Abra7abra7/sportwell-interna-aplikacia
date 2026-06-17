@@ -1,15 +1,11 @@
-import html2pdf from 'html2pdf.js';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-
-
-
-export const generatePdfFromElement = (elementId: string, filename: string) => {
+export const generatePdfFromElement = async (elementId: string, filename: string) => {
   const element = document.getElementById(elementId);
   if (!element) {
     console.error(`Element with id ${elementId} not found`);
     return;
   }
+
+  const html2pdf = (await import('html2pdf.js')).default;
 
   const opt = {
     margin: 15,
@@ -30,6 +26,8 @@ export const generatePdfBlob = async (elementId: string, password?: string): Pro
   }
 
   try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    
     const opt = {
       margin: [10, 10, 10, 10] as [number, number, number, number], // margin in mm
       filename: 'document.pdf',

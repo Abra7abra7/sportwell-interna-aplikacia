@@ -59,17 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [registerVerifyCode, setRegisterVerifyCode] = useState('');
   const [registerInputCode, setRegisterInputCode] = useState('');
 
-  const checkUserSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setSessionUser(session.user);
-      await fetchUserProfile(session.user);
-    } else {
-      setSessionUser(null);
-      setCurrentUserProfile(null);
-    }
-    setAuthInitialized(true);
-  };
+
 
   const fetchRolePermissions = async (role: string) => {
     const { data: perms } = await supabase
@@ -244,9 +234,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    checkUserSession();
+    let mounted = true;
+
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (session?.user) {
+        setSessionUser(session.user);
+        await fetchUserProfile(session.user);
+      } else {
+        setSessionUser(null);
+        setCurrentUserProfile(null);
+      }
+      setAuthInitialized(true);
+    };
+
+    initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (!mounted) return;
       if (session?.user) {
         setSessionUser(session.user);
         fetchUserProfile(session.user);
@@ -257,8 +263,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = {

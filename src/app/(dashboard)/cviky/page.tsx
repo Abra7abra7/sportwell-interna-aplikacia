@@ -13,9 +13,12 @@ interface Exercise {
   is_custom: boolean;
   image_url: string;
   gif_url: string;
+  description?: string;
+  video_url?: string;
+  created_by?: string;
 }
 
-function ExerciseCard({ ex, onEdit }: { ex: Exercise, onEdit?: (ex: Exercise) => void }) {
+function ExerciseCard({ ex, onEdit, onSelect, currentUserRole }: { ex: Exercise, onEdit?: (ex: Exercise) => void, onSelect: (ex: Exercise) => void, currentUserRole?: string }) {
   const [isHovered, setIsHovered] = useState(false);
   
   return (
@@ -23,6 +26,7 @@ function ExerciseCard({ ex, onEdit }: { ex: Exercise, onEdit?: (ex: Exercise) =>
       className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group border border-transparent hover:border-brand-light-cyan cursor-pointer flex flex-col overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onSelect(ex)}
     >
       {/* Vizuálny kontajner (Náhľad / GIF) */}
       <div className="h-56 w-full bg-gray-100 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
@@ -91,6 +95,10 @@ export default function CvikyPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
+
   const [newExercise, setNewExercise] = useState({
     id: "",
     name: "",
@@ -98,8 +106,11 @@ export default function CvikyPage() {
     equipment: "body weight",
     primary_muscles: "",
     image_url: "",
+    description: "",
+    video_url: "",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [filterMuscle, setFilterMuscle] = useState("");
@@ -113,8 +124,8 @@ export default function CvikyPage() {
     const { data, error } = await supabase
       .from("exercises")
       .select("*")
-      .order("created_at", { ascending: false }) // vlastné budú navrchu
-      .limit(2000); // načítame všetky cviky z datasetu pre rýchle lokálne filtrovanie
+      .order("created_at", { ascending: false })
+      .limit(2000);
 
     if (error) {
       console.error("Chyba pri načítavaní cvikov:", error);
@@ -126,6 +137,16 @@ export default function CvikyPage() {
 
   useEffect(() => {
     fetchExercises();
+    
+    // Načítanie role pre overovanie práv mazania
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setCurrentUserData(profile);
+      }
+    };
+    loadUser();
   }, [supabase]);
 
   // Extrahovanie unikátnych hodnôt pre filtre
@@ -160,7 +181,7 @@ export default function CvikyPage() {
 
   const openCreateModal = () => {
     setModalMode("create");
-    setNewExercise({ id: "", name: "", category: "strength", equipment: "body weight", primary_muscles: "", image_url: "" });
+    setNewExercise({ id: "", name: "", category: "strength", equipment: "body weight", primary_muscles: "", image_url: "", description: "", video_url: "" });
     setSelectedFile(null);
     setIsModalOpen(true);
   };
@@ -174,9 +195,25 @@ export default function CvikyPage() {
       equipment: ex.equipment || "body weight",
       primary_muscles: ex.primary_muscles?.[0] || "",
       image_url: ex.image_url || "",
+      description: ex.description || "",
+      video_url: ex.video_url || "",
     });
     setSelectedFile(null);
     setIsModalOpen(true);
+  };
+
+  const handleDeleteExercise = async (id: string) => {
+    if (!confirm("Naozaj chcete zmazať tento cvik?")) return;
+    setIsSubmitting(true);
+    const { error } = await supabase.from("exercises").delete().eq("id", id);
+    setIsSubmitting(false);
+    
+    if (error) {
+      alert("Chyba pri mazaní cviku: " + error.message);
+    } else {
+      setIsDetailModalOpen(false);
+      fetchExercises();
+    }
   };
 
   const handleAddCustomExercise = async (e: React.FormEvent) => {
@@ -184,6 +221,7 @@ export default function CvikyPage() {
     setIsSubmitting(true);
     
     let finalImageUrl = newExercise.image_url;
+    let finalVideoUrl = newExercise.video_url;
 
     if (selectedFile) {
       const fileExt = selectedFile.name.split('.').pop();
@@ -205,15 +243,38 @@ export default function CvikyPage() {
         
       finalImageUrl = publicUrlData.publicUrl;
     }
+
+    if (selectedVideoFile) {
+      const fileExt = selectedVideoFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('exercise_videos')
+        .upload(fileName, selectedVideoFile);
+        
+      if (uploadError) {
+        alert("Chyba pri nahrávaní videa: " + uploadError.message);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('exercise_videos')
+        .getPublicUrl(fileName);
+        
+      finalVideoUrl = publicUrlData.publicUrl;
+    }
     
     const exerciseData = {
       name: newExercise.name,
       category: newExercise.category,
       equipment: newExercise.equipment,
       primary_muscles: newExercise.primary_muscles ? [newExercise.primary_muscles] : [],
+      description: newExercise.description,
       is_custom: true,
       difficulty_level: 'intermediate',
       image_url: finalImageUrl || null,
+      video_url: finalVideoUrl || null,
     };
 
     let error = null;
@@ -316,7 +377,16 @@ export default function CvikyPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {visibleExercises.map((ex) => (
-                <ExerciseCard key={ex.id} ex={ex} onEdit={ex.is_custom ? openEditModal : undefined} />
+                <ExerciseCard 
+                  key={ex.id} 
+                  ex={ex} 
+                  onSelect={(selected) => {
+                    setSelectedExercise(selected);
+                    setIsDetailModalOpen(true);
+                  }}
+                  onEdit={ex.is_custom ? openEditModal : undefined} 
+                  currentUserRole={currentUserData?.role}
+                />
               ))}
             </div>
           )}
@@ -366,6 +436,20 @@ export default function CvikyPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Inštruktážne video (voliteľné)</label>
+                {newExercise.video_url && !selectedVideoFile && (
+                  <p className="text-sm text-brand-cyan mb-2">✓ Video je už nahrané</p>
+                )}
+                <input 
+                  type="file" 
+                  accept="video/mp4, video/webm"
+                  onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-cyan focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-light-cyan file:text-brand-navy hover:file:bg-brand-cyan transition-colors"
+                />
+                <p className="text-xs text-gray-400 mt-1">Podporované formáty: MP4, WebM (max 20MB).</p>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Názov cviku *</label>
                 <input 
                   required
@@ -374,6 +458,17 @@ export default function CvikyPage() {
                   onChange={(e) => setNewExercise({...newExercise, name: e.target.value})}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-cyan focus:border-transparent" 
                   placeholder="napr. Kliky na bradlách"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Podrobný popis / Inštrukcie</label>
+                <textarea 
+                  value={newExercise.description}
+                  onChange={(e) => setNewExercise({...newExercise, description: e.target.value})}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-cyan focus:border-transparent" 
+                  placeholder="Popíšte techniku cviku, na čo si dať pozor..."
+                  rows={4}
                 />
               </div>
               
@@ -431,6 +526,102 @@ export default function CvikyPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Detail cviku - Modálne okno */}
+      {isDetailModalOpen && selectedExercise && (
+        <div className="fixed inset-0 bg-brand-dark-navy/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[95vh] flex flex-col relative">
+            <button 
+              onClick={() => setIsDetailModalOpen(false)} 
+              className="absolute top-4 right-4 bg-white/50 hover:bg-white rounded-full p-2 text-gray-600 hover:text-red-500 transition-colors z-10 backdrop-blur-sm"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div className="overflow-y-auto">
+              <div className="w-full bg-gray-100 relative min-h-[300px] flex items-center justify-center">
+                {selectedExercise.video_url ? (
+                  <video 
+                    src={selectedExercise.video_url} 
+                    controls 
+                    autoPlay 
+                    className="w-full max-h-[500px] object-contain bg-black"
+                  />
+                ) : (selectedExercise.gif_url || selectedExercise.image_url) ? (
+                  <img 
+                    src={selectedExercise.gif_url || selectedExercise.image_url} 
+                    alt={selectedExercise.name}
+                    className="w-full max-h-[500px] object-contain mix-blend-multiply"
+                  />
+                ) : (
+                  <div className="text-gray-400 p-20 flex flex-col items-center">
+                    <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span className="text-sm font-medium">Zatiaľ žiadne video ani obrázok</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8">
+                <div className="flex gap-2 mb-4">
+                  <span className="text-xs font-bold uppercase tracking-wider text-brand-dark-navy bg-brand-light-cyan px-3 py-1 rounded-full">
+                    {selectedExercise.category}
+                  </span>
+                  {selectedExercise.is_custom && (
+                    <span className="text-xs font-bold uppercase tracking-wider text-white bg-brand-cyan px-3 py-1 rounded-full">
+                      Vlastný cvik
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-3xl font-black text-brand-navy mb-6">{selectedExercise.name}</h2>
+
+                <div className="grid grid-cols-2 gap-6 mb-8">
+                  <div className="bg-gray-50 p-4 rounded-xl">
+                    <p className="text-sm text-gray-500 font-medium mb-1">Potrebné náradie</p>
+                    <p className="text-lg font-bold text-brand-navy capitalize">{selectedExercise.equipment || "Vlastná váha"}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-xl">
+                    <p className="text-sm text-gray-500 font-medium mb-1">Zapojené svaly</p>
+                    <p className="text-lg font-bold text-brand-navy capitalize">{selectedExercise.primary_muscles?.join(", ") || "-"}</p>
+                  </div>
+                </div>
+
+                {selectedExercise.description && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-bold text-brand-navy mb-3">Inštrukcie a Popis</h3>
+                    <div className="bg-brand-off-white p-5 rounded-2xl border border-gray-100">
+                      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedExercise.description}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Kontrola oprávnení na mazanie/úpravu */}
+                {((selectedExercise.is_custom && selectedExercise.created_by === currentUserData?.id) || 
+                  currentUserData?.role === 'admin' || currentUserData?.role === 'majitel') && (
+                  <div className="border-t border-gray-100 pt-6 mt-6 flex justify-end gap-4">
+                    <button 
+                      onClick={() => {
+                        setIsDetailModalOpen(false);
+                        openEditModal(selectedExercise);
+                      }}
+                      className="px-6 py-2 bg-brand-light-cyan text-brand-navy font-bold rounded-xl hover:bg-brand-cyan transition-colors"
+                    >
+                      Upraviť cvik
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteExercise(selectedExercise.id)}
+                      disabled={isSubmitting}
+                      className="px-6 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors"
+                    >
+                      {isSubmitting ? "Mažem..." : "Zmazať cvik"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
