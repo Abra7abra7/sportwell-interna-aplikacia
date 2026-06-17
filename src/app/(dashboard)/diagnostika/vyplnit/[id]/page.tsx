@@ -210,6 +210,15 @@ export default function VyplnitDiagnostikuPage() {
     );
   }
 
+  let allFields: any[] = [];
+  if (template?.schema?.steps) {
+    allFields = template.schema.steps.flatMap((s: any) => s.fields || []);
+  } else if (template?.schema?.fields) {
+    allFields = template.schema.fields;
+  } else if (Array.isArray(template?.schema)) {
+    allFields = template.schema;
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
@@ -269,12 +278,15 @@ export default function VyplnitDiagnostikuPage() {
               <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '20px', paddingBottom: '10px', color: '#020C1B', borderBottom: '2px solid #D3FAFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Výsledky diagnostiky</h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '14px' }}>
-                {Object.entries(submittedData.form_data || {}).map(([key, val]) => (
-                  <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                    <p style={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', color: '#00F0FF', margin: '0 0 6px 0', letterSpacing: '0.5px' }}>{formatKey(key)}</p>
-                    <div style={{ margin: 0, color: '#0A192F', fontWeight: '500' }}>{renderValue(val)}</div>
-                  </div>
-                ))}
+                {allFields.map((field) => {
+                  const val = submittedData.form_data?.[field.id];
+                  return (
+                    <div key={field.id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <p style={{ fontWeight: 'bold', fontSize: '12px', color: '#00F0FF', margin: '0 0 6px 0', letterSpacing: '0.5px' }}>{field.label}</p>
+                      <div style={{ margin: 0, color: '#0A192F', fontWeight: '500' }}>{renderValue(val)}</div>
+                    </div>
+                  );
+                })}
               </div>
               
               <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>

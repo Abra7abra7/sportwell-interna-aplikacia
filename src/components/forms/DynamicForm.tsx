@@ -114,91 +114,104 @@ export default function DynamicForm({ schema, onSubmit, onCancel }: DynamicFormP
 
     const validation = { required: field.required ? "Toto pole je povinné" : false };
 
+    // Helper for selected state in radio/checkbox
+    const isSelected = (opt: string) => {
+      const val = formValues[field.id];
+      if (Array.isArray(val)) return val.includes(opt);
+      return val === opt;
+    };
+
     return (
-      <div key={field.id} className="mb-6">
-        <label className="block text-brand-navy font-bold mb-2">
+      <div key={field.id} className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+        <label className="block text-brand-navy font-bold text-lg mb-4">
           {field.label} {field.required && <span className="text-red-500">*</span>}
         </label>
         
         {field.type === "text" || field.type === "number" ? (
           <input 
             type={field.type}
-            placeholder={field.placeholder || ""}
+            placeholder={field.placeholder || "Začnite písať..."}
             {...register(field.id, validation)}
-            className={`w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan ${hasError ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full p-4 bg-gray-50 border rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-brand-cyan transition-all duration-200 ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 hover:border-gray-300'}`}
           />
         ) : field.type === "textarea" ? (
           <textarea 
-            placeholder={field.placeholder || ""}
+            placeholder={field.placeholder || "Začnite písať..."}
             rows={4}
             {...register(field.id, validation)}
-            className={`w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan ${hasError ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full p-4 bg-gray-50 border rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-brand-cyan transition-all duration-200 ${hasError ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'}`}
           />
         ) : field.type === "select" ? (
           <select 
             {...register(field.id, validation)}
-            className={`w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-brand-cyan bg-white ${hasError ? 'border-red-500' : 'border-gray-300'}`}
+            className={`w-full p-4 bg-gray-50 border rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-brand-cyan transition-all duration-200 ${hasError ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'}`}
           >
             <option value="">-- Vyberte --</option>
             {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
-        ) : field.type === "radio" ? (
-          <div className="space-y-2">
+        ) : field.type === "radio" || field.type === "checkbox" || field.type === "checkbox_group" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {field.options?.map(opt => (
-              <label key={opt} className="flex items-center space-x-3 cursor-pointer">
-                <input 
-                  type="radio" 
-                  value={opt}
-                  {...register(field.id, validation)}
-                  className="w-5 h-5 text-brand-cyan"
-                />
-                <span>{opt}</span>
-              </label>
-            ))}
-          </div>
-        ) : field.type === "checkbox" || field.type === "checkbox_group" ? (
-          <div className="space-y-2">
-            {field.options?.map(opt => (
-              <label key={opt} className="flex items-center space-x-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  value={opt}
-                  {...register(field.id, validation)}
-                  className="w-5 h-5 text-brand-cyan rounded focus:ring-brand-cyan"
-                />
-                <span>{opt}</span>
+              <label 
+                key={opt} 
+                className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all duration-200 group ${
+                  isSelected(opt) 
+                    ? 'border-brand-cyan bg-brand-light-cyan/20 ring-1 ring-brand-cyan shadow-sm' 
+                    : 'border-gray-200 hover:border-brand-cyan/50 hover:bg-gray-50'
+                }`}
+              >
+                <div className="relative flex items-center justify-center">
+                  <input 
+                    type={field.type === "radio" ? "radio" : "checkbox"} 
+                    value={opt}
+                    {...register(field.id, validation)}
+                    className="sr-only" 
+                  />
+                  <div className={`w-5 h-5 flex items-center justify-center transition-colors duration-200 ${field.type === "radio" ? "rounded-full" : "rounded"} border ${isSelected(opt) ? "border-brand-cyan bg-brand-cyan" : "border-gray-300 group-hover:border-brand-cyan/50"}`}>
+                    {isSelected(opt) && (
+                      field.type === "radio" 
+                        ? <div className="w-2 h-2 bg-white rounded-full"></div> 
+                        : <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    )}
+                  </div>
+                </div>
+                <span className={`ml-3 font-medium ${isSelected(opt) ? 'text-brand-navy' : 'text-gray-700 group-hover:text-brand-navy'}`}>
+                  {opt}
+                </span>
               </label>
             ))}
           </div>
         ) : field.type === "grid" ? (
           <div className="space-y-3">
             {field.rows?.map(row => (
-              <div key={row} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-medium text-gray-700 mb-2 sm:mb-0">{row}</span>
+              <div key={row} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-xl hover:bg-white hover:border-gray-200 transition-colors">
+                <span className="font-medium text-brand-navy mb-2 sm:mb-0">{row}</span>
                 <input 
                   type="text" 
-                  placeholder="uveďte počet (napr. 3x)"
+                  placeholder="napr. 3x"
                   {...register(`${field.id}.${row}`)}
-                  className="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-brand-cyan outline-none"
+                  className="p-3 w-full sm:w-48 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all bg-white"
                 />
               </div>
             ))}
           </div>
         ) : field.type === "vas_scale" ? (
-          <div className="px-2">
-            <div className="flex justify-between text-sm text-gray-500 mb-2">
-              <span>0 (Žiadna bolesť)</span>
-              <span>10 (Neznesiteľná bolesť)</span>
+          <div className="px-2 pt-4">
+            <div className="flex justify-between text-sm text-gray-500 font-medium mb-3">
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md">0 (Žiadna)</span>
+              <span className="bg-red-100 text-red-800 px-2 py-1 rounded-md">10 (Neznesiteľná)</span>
             </div>
             <input 
               type="range" 
               min="0" 
               max="10" 
               {...register(field.id)}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-cyan"
+              className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-cyan hover:accent-brand-dark-navy transition-all"
             />
-            <div className="text-center mt-2 font-bold text-brand-navy">
-              Vybraná hodnota: {formValues[field.id] || 0}
+            <div className="text-center mt-6">
+              <span className="inline-block bg-brand-navy text-white text-xl font-bold px-4 py-2 rounded-xl shadow-sm">
+                Bolesť: {formValues[field.id] || 0}
+              </span>
             </div>
           </div>
         ) : field.type === "file_upload" ? (
@@ -226,24 +239,30 @@ export default function DynamicForm({ schema, onSubmit, onCancel }: DynamicFormP
               return (
                 <div 
                   {...getRootProps()} 
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                    isDragActive ? 'border-brand-cyan bg-brand-light-cyan/50' : 
+                  className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${
+                    isDragActive ? 'border-brand-cyan bg-brand-light-cyan/30 scale-[1.02]' : 
                     hasError ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-brand-cyan hover:bg-gray-50'
                   }`}
                 >
                   <input {...getInputProps()} />
                   {value ? (
-                    <div className="text-brand-navy">
-                      <div className="text-2xl mb-2">📄</div>
-                      <p className="font-bold">{value.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">{(value.size / 1024 / 1024).toFixed(2)} MB</p>
-                      <p className="text-sm text-brand-cyan mt-3 hover:underline">Kliknite pre zmenu súboru</p>
+                    <div className="text-brand-navy flex flex-col items-center">
+                      <div className="w-16 h-16 bg-brand-cyan/10 text-brand-cyan rounded-full flex items-center justify-center text-3xl mb-4">📄</div>
+                      <p className="font-bold text-lg">{value.name}</p>
+                      <p className="text-sm text-gray-500 mt-1 font-medium">{(value.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <span className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">Kliknite pre zmenu súboru</span>
                     </div>
                   ) : (
-                    <div className="text-gray-500">
-                      <div className="text-3xl mb-2">☁️</div>
-                      <p className="font-medium text-gray-700">Potiahnite súbor sem alebo kliknite pre výber</p>
-                      <p className="text-xs mt-2">Podporované formáty: PDF, JPG, PNG (Max 10 MB)</p>
+                    <div className="text-gray-500 flex flex-col items-center">
+                      <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">☁️</div>
+                      <p className="font-medium text-brand-navy text-lg">Potiahnite súbor sem</p>
+                      <p className="text-sm mt-1">alebo kliknite pre výber z počítača</p>
+                      <div className="flex gap-2 mt-4">
+                        <span className="px-2 py-1 bg-gray-100 text-xs font-medium rounded text-gray-500">PDF</span>
+                        <span className="px-2 py-1 bg-gray-100 text-xs font-medium rounded text-gray-500">JPG</span>
+                        <span className="px-2 py-1 bg-gray-100 text-xs font-medium rounded text-gray-500">PNG</span>
+                        <span className="px-2 py-1 bg-gray-100 text-xs font-medium rounded text-gray-500">Max 10MB</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -252,7 +271,12 @@ export default function DynamicForm({ schema, onSubmit, onCancel }: DynamicFormP
           />
         ) : null}
 
-        {hasError && <p className="text-red-500 text-sm mt-1">{errorMessage}</p>}
+        {hasError && (
+          <div className="flex items-center text-red-500 text-sm mt-3 font-medium">
+            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+            {errorMessage}
+          </div>
+        )}
       </div>
     );
   };

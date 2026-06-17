@@ -475,6 +475,19 @@ export default function ClientProfilePage() {
                       setExpandedRecords(prev => ({ ...prev, [record.id]: !prev[record.id] }));
                     };
 
+                    let allFields: any[] = [];
+                    if (record.form_templates?.schema?.steps) {
+                      allFields = record.form_templates.schema.steps.flatMap((s: any) => s.fields || []);
+                    } else if (record.form_templates?.schema?.fields) {
+                      allFields = record.form_templates.schema.fields;
+                    } else if (Array.isArray(record.form_templates?.schema)) {
+                      allFields = record.form_templates.schema;
+                    }
+
+                    const formEntries = allFields.length > 0
+                      ? allFields.map(f => ({ key: f.id, label: f.label, val: record.form_data?.[f.id] })).filter(e => e.val !== undefined)
+                      : Object.entries(record.form_data || {}).map(([key, val]) => ({ key, label: getFieldLabel(key), val }));
+
                     return (
                       <div key={record.id} className="border border-gray-100/80 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 group">
                         <div 
@@ -508,9 +521,9 @@ export default function ClientProfilePage() {
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {Object.entries(record.form_data || {}).map(([key, val]) => (
+                              {formEntries.map(({ key, label, val }) => (
                                 <div key={key} className="bg-brand-off-white/50 p-4 rounded-xl border border-gray-100">
-                                  <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">{getFieldLabel(key)}</p>
+                                  <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">{label}</p>
                                   <div className="text-sm text-gray-800">{renderValue(val)}</div>
                                 </div>
                               ))}
@@ -550,9 +563,9 @@ export default function ClientProfilePage() {
                               <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '20px', paddingBottom: '10px', color: '#020C1B', borderBottom: '2px solid #D3FAFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Výsledky diagnostiky</h3>
                               
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
-                                {Object.entries(record.form_data || {}).map(([key, val]) => (
+                                {formEntries.map(({ key, label, val }) => (
                                   <div key={key} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                                    <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#0A192F', margin: '0 0 6px 0', letterSpacing: '0.5px' }}>{getFieldLabel(key)}</p>
+                                    <p style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', color: '#0A192F', margin: '0 0 6px 0', letterSpacing: '0.5px' }}>{label}</p>
                                     <div style={{ margin: 0, color: '#334155', fontSize: '14px' }}>{renderValue(val)}</div>
                                   </div>
                                 ))}
