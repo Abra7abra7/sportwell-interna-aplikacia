@@ -59,6 +59,7 @@ export default function EditPlanPage() {
   
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'catalog' | 'plan'>('plan');
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -323,31 +324,47 @@ export default function EditPlanPage() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 shrink-0 gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 shrink-0 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-brand-navy">Úprava Tréningového Plánu</h1>
-          <p className="text-gray-500 mt-1">Upravte existujúci plán pre klienta</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-brand-navy">Úprava Tréningového Plánu</h1>
+          <p className="text-gray-500 mt-1 text-sm md:text-base">Upravte existujúci plán pre klienta</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2 md:gap-4">
           <button 
             onClick={() => router.back()}
-            className="px-4 py-2 text-brand-navy font-medium bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-3 md:px-4 py-2 text-brand-navy font-medium bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm md:text-base"
           >
             Zrušiť
           </button>
           <button 
             onClick={handleSavePlan}
             disabled={isSaving}
-            className="bg-brand-cyan text-brand-dark-navy px-6 py-2 rounded-lg font-bold shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 flex items-center"
+            className="bg-brand-cyan text-brand-dark-navy px-4 md:px-6 py-2 rounded-lg font-bold shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 flex items-center text-sm md:text-base"
           >
             {isSaving ? "Ukladám..." : "Uložiť Zmeny"}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full min-h-0 overflow-y-auto lg:overflow-hidden pb-10">
+      {/* Mobile Tabs */}
+      <div className="lg:hidden flex gap-2 mb-4 bg-gray-100 p-1 rounded-xl shrink-0">
+        <button 
+          onClick={() => setActiveTab('plan')} 
+          className={`flex-1 py-2 font-bold text-sm rounded-lg transition-colors ${activeTab === 'plan' ? 'bg-white shadow text-brand-cyan' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Váš plán ({planExercises.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('catalog')} 
+          className={`flex-1 py-2 font-bold text-sm rounded-lg transition-colors ${activeTab === 'catalog' ? 'bg-white shadow text-brand-cyan' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Katalóg cvikov
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full min-h-0 overflow-hidden pb-10 lg:pb-0">
         {/* Ľavý stĺpec: Databáza cvikov */}
-        <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[400px] lg:min-h-0 shrink-0 lg:shrink">
+        <div className={`${activeTab === 'catalog' ? 'flex' : 'hidden'} lg:flex w-full lg:w-1/2 flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 h-full`}>
           <div className="p-4 border-b border-gray-100 bg-brand-off-white shrink-0">
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-bold text-lg text-brand-navy">Katalóg Cvikov</h2>
@@ -429,7 +446,7 @@ export default function EditPlanPage() {
         </div>
 
         {/* Pravý stĺpec: Aktuálny Plán */}
-        <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm border border-brand-light-cyan overflow-hidden min-h-[500px] lg:min-h-0 shrink-0 lg:shrink">
+        <div className={`${activeTab === 'plan' ? 'flex' : 'hidden'} lg:flex w-full lg:w-1/2 flex-col bg-white rounded-2xl shadow-sm border border-brand-light-cyan overflow-hidden h-full`}>
           <div className="p-5 border-b border-gray-100 bg-brand-navy shrink-0 text-white space-y-4">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
