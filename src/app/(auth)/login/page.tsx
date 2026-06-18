@@ -141,7 +141,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-lg animate-in fade-in slide-in-from-left-8 duration-1000">
-          <Logo className="h-16 mb-12 drop-shadow-2xl" showText={true} darkText={false} />
+          <Logo className="h-16 md:h-28 mb-12 drop-shadow-2xl" textSizeClass="text-4xl md:text-6xl" showText={true} darkText={false} />
           <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-6 tracking-tight">
             Vaše centrum pre <span className="text-brand-cyan">zdravie</span> a <span className="text-brand-cyan">pohyb</span>.
           </h1>
