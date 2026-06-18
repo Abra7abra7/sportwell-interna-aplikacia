@@ -164,7 +164,7 @@ export default function GdprPage() {
       if (uploadData) {
         const { error: docError } = await supabase.from('documents').insert({
           client_id: currentUserProfile.id,
-          file_name: `GDPR_Suhlas_${formData.lastName}.html`,
+          file_name: `GDPR_Suhlas_${formData.lastName}.pdf`,
           storage_path: uploadData.path
         });
         
