@@ -105,8 +105,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Prístup k nastaveniam aplikácie (Matrix)
   if (["admin", "majitel"].includes(role)) {
-    navigationItems.push({ id: "nastavenia", label: "Nastavenia (RBAC)", href: "/nastavenia" });
+    navigationItems.push({ id: "nastavenia", label: "Nastavenia", href: "/nastavenia" });
   }
+
+  const MAX_PRIMARY = 4;
+  const primaryItems = navigationItems.slice(0, MAX_PRIMARY);
+  const secondaryItems = navigationItems.slice(MAX_PRIMARY);
+  const hasMore = secondaryItems.length > 0;
 
   return (
     <div className="h-screen bg-brand-off-white flex flex-col md:flex-row overflow-hidden">
@@ -158,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 overflow-y-auto w-full transition-all duration-300 ${isClient ? 'pb-24' : 'pb-6'} md:pb-8`}>
+      <main className="flex-1 overflow-y-auto w-full transition-all duration-300 pb-24 md:pb-8">
         
         {/* Mobile Header (Hamburger Menu / Logo) */}
         <header className="md:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 flex justify-between items-center shadow-sm">
@@ -169,14 +174,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="h-8 w-8 rounded-full bg-brand-light-cyan text-brand-navy flex items-center justify-center font-bold text-sm">
               {currentUserProfile.full_name.charAt(0)}
             </div>
-            {!isClient && (
-              <button 
-                onClick={() => setMobileMenuOpen(true)}
-                className="p-2 -mr-2 text-brand-navy hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-              </button>
-            )}
           </div>
         </header>
 
@@ -186,72 +183,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* Bottom Navigation for Mobile (ONLY FOR CLIENTS) */}
-      {isClient && (
-        <nav className="md:hidden fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 flex justify-around p-2 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe">
-          {navigationItems.map((item) => {
-            const isActive = pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard');
-            return (
-              <button
-                key={item.id}
-                onClick={() => router.push(item.href)}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all w-20 ${
-                  isActive ? "text-brand-cyan scale-105" : "text-gray-400 hover:text-brand-navy"
-                }`}
-              >
-                {getIconForId(item.id)}
-                <span className={`text-[10px] mt-1 ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      )}
-
-      {/* Full-Screen Mobile Menu for Trainers/Admins */}
-      {!isClient && mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-brand-dark-navy text-white flex flex-col animate-in slide-in-from-right-full duration-300">
-          <div className="p-4 flex justify-between items-center border-b border-white/10 bg-brand-navy">
-            <Logo className="h-8" showText={true} darkText={false} />
-            <button 
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-gray-400 hover:text-white bg-white/5 rounded-lg"
+      {/* Bottom Navigation for Mobile (ALL ROLES) */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 flex justify-around p-2 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe">
+        {primaryItems.map((item) => {
+          const isActive = pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard');
+          return (
+            <button
+              key={item.id}
+              onClick={() => router.push(item.href)}
+              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16 sm:w-20 ${
+                isActive ? "text-brand-cyan scale-105" : "text-gray-400 hover:text-brand-navy"
+              }`}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              {getIconForId(item.id)}
+              <span className={`text-[10px] mt-1 ${isActive ? 'font-bold' : 'font-medium'} truncate w-full text-center`}>{item.label}</span>
             </button>
-          </div>
+          );
+        })}
+        {hasMore && (
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16 sm:w-20 ${
+              mobileMenuOpen ? "text-brand-cyan scale-105" : "text-gray-400 hover:text-brand-navy"
+            }`}
+          >
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            <span className={`text-[10px] mt-1 ${mobileMenuOpen ? 'font-bold' : 'font-medium'} truncate w-full text-center`}>Viac</span>
+          </button>
+        )}
+      </nav>
+
+      {/* Bottom Sheet Menu for Additional Items */}
+      {mobileMenuOpen && hasMore && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setMobileMenuOpen(false)}
+          ></div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {navigationItems.map((item) => {
-              const isActive = pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard');
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => router.push(item.href)}
-                  className={`w-full flex items-center px-4 py-4 rounded-2xl text-lg font-bold transition-all ${
-                    isActive
-                      ? "bg-brand-cyan text-brand-dark-navy shadow-lg"
-                      : "text-gray-300 hover:bg-white/10"
-                  }`}
-                >
-                  <span className="mr-4">{getIconForId(item.id)}</span>
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-          
-          <div className="p-6 bg-brand-navy border-t border-white/10">
-             <div className="mb-4">
-               <p className="font-bold text-white text-lg">{currentUserProfile.full_name}</p>
-               <p className="text-brand-cyan text-sm">{currentUserProfile.role.toUpperCase()}</p>
-             </div>
-             <button
-              onClick={() => { handleSignOut(); router.push("/login"); }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-2xl transition-all shadow-lg flex justify-center items-center"
-             >
-               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-               Odhlásiť sa
-             </button>
+          {/* Bottom Sheet */}
+          <div className="relative bg-brand-dark-navy text-white flex flex-col rounded-t-3xl max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 shadow-2xl">
+            <div className="p-4 flex justify-between items-center border-b border-white/10">
+              <h3 className="text-lg font-bold ml-2">Viac možností</h3>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-gray-400 hover:text-white bg-white/5 rounded-full"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-8">
+              {secondaryItems.map((item) => {
+                const isActive = pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard');
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { setMobileMenuOpen(false); router.push(item.href); }}
+                    className={`w-full flex items-center px-4 py-4 rounded-2xl text-lg font-bold transition-all ${
+                      isActive
+                        ? "bg-brand-cyan text-brand-dark-navy shadow-lg"
+                        : "text-gray-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="mr-4">{getIconForId(item.id)}</span>
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="p-6 bg-brand-navy border-t border-white/10 pb-safe">
+               <div className="mb-4">
+                 <p className="font-bold text-white text-lg">{currentUserProfile.full_name}</p>
+                 <p className="text-brand-cyan text-sm">{currentUserProfile.role.toUpperCase()}</p>
+               </div>
+               <button
+                onClick={() => { handleSignOut(); router.push("/login"); }}
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-2xl transition-all shadow-lg flex justify-center items-center"
+               >
+                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                 Odhlásiť sa
+               </button>
+            </div>
           </div>
         </div>
       )}
