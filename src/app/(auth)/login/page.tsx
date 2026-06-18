@@ -19,7 +19,8 @@ function LoginForm() {
     handleAuthSubmit,
     handleVerifyOtp,
     isAuthLoading,
-    magicLinkSent
+    magicLinkSent,
+    setMagicLinkSent
   } = useAuthContext();
 
   useEffect(() => {
@@ -79,6 +80,16 @@ function LoginForm() {
                   Overujem...
                 </span>
               ) : 'Prihlásiť sa'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMagicLinkSent(false);
+                setAuthCode('');
+              }}
+              className="w-full bg-transparent hover:bg-gray-50 text-gray-500 font-semibold py-3 px-4 rounded-2xl transition-all duration-300 border border-gray-200"
+            >
+              Späť / Zmeniť e-mail
             </button>
           </form>
         ) : (

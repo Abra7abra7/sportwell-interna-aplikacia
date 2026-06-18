@@ -30,6 +30,7 @@ interface AuthContextType {
   setAuthEmail: React.Dispatch<React.SetStateAction<string>>;
   isAuthLoading: boolean;
   magicLinkSent: boolean;
+  setMagicLinkSent: React.Dispatch<React.SetStateAction<boolean>>;
   authInitialized: boolean;
   authCode: string;
   setAuthCode: React.Dispatch<React.SetStateAction<string>>;
@@ -278,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthEmail,
     isAuthLoading,
     magicLinkSent,
+    setMagicLinkSent,
     authInitialized,
     handleAuthSubmit,
     handleVerifyOtp,
