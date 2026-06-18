@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto w-full transition-all duration-300 pb-24 md:pb-8">
+      <main className="flex-1 overflow-y-auto w-full transition-all duration-300 pb-32 md:pb-8">
         
         {/* Mobile Header (Hamburger Menu / Logo) */}
         <header className="md:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 flex justify-between items-center shadow-sm">

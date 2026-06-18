@@ -22,6 +22,9 @@ interface PlanExercise {
   target_reps: string;
   target_duration: number | null;
   target_rest_seconds: number;
+  tempo: string;
+  rpe: string;
+  rest_between_exercises: number;
   notes: string;
 }
 
@@ -47,10 +50,17 @@ export default function CreatePlanPage() {
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [planTitle, setPlanTitle] = useState("");
   const [planDescription, setPlanDescription] = useState("");
+  const [warmupNotes, setWarmupNotes] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clients, setClients] = useState<ClientProfile[]>([]);
   
   const [isSaving, setIsSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -102,19 +112,64 @@ export default function CreatePlanPage() {
         target_reps: "10-12",
         target_duration: null,
         target_rest_seconds: 60,
+        tempo: "2-0-2-0",
+        rpe: "80%",
+        rest_between_exercises: 0,
         notes: ""
       }
     ]);
+    showToast(`Cvik "${ex.name}" bol pridaný do plánu`);
   };
 
   const handleRemoveExercise = (tempId: string) => {
+    const exerciseToRemove = planExercises.find(pe => pe.tempId === tempId);
     setPlanExercises(prev => prev.filter(pe => pe.tempId !== tempId));
+    if (exerciseToRemove) {
+      showToast(`Cvik "${exerciseToRemove.exercise.name}" bol odobraný z plánu`);
+    }
   };
 
   const handleUpdateExerciseParam = (tempId: string, field: keyof PlanExercise, value: any) => {
     setPlanExercises(prev => prev.map(pe => 
       pe.tempId === tempId ? { ...pe, [field]: value } : pe
     ));
+  };
+
+  const handleCreateQuickCustomExercise = async () => {
+    const name = window.prompt("Zadajte názov nového vlastného cviku (napr. 'Tlak s jednoručkami'):");
+    if (!name || !name.trim()) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const creatorId = userData?.user?.id;
+
+    if (!creatorId) {
+      alert("Chyba autentifikácie.");
+      return;
+    }
+
+    setIsSaving(true);
+    const { data: newExData, error: newExError } = await supabase
+      .from("exercises")
+      .insert([{
+        name: name.trim(),
+        category: "Vlastné",
+        equipment: "Vlastná váha",
+        primary_muscles: [],
+        is_custom: true,
+        created_by: creatorId
+      }])
+      .select("*")
+      .single();
+    
+    setIsSaving(false);
+
+    if (newExError || !newExData) {
+      alert("Chyba pri vytváraní cviku: " + newExError?.message);
+      return;
+    }
+
+    setExercises(prev => [...prev, newExData].sort((a, b) => a.name.localeCompare(b.name)));
+    handleAddExerciseToPlan(newExData);
   };
 
   const handleSavePlan = async () => {
@@ -151,6 +206,7 @@ export default function CreatePlanPage() {
         creator_id: creatorId,
         title: planTitle,
         description: planDescription,
+        warmup_notes: warmupNotes,
         is_active: true
       }])
       .select("id")
@@ -171,6 +227,9 @@ export default function CreatePlanPage() {
       target_reps: pe.target_reps,
       target_duration: pe.target_duration,
       target_rest_seconds: pe.target_rest_seconds,
+      tempo: pe.tempo,
+      rpe: pe.rpe,
+      rest_between_exercises: pe.rest_between_exercises,
       notes: pe.notes
     }));
 
@@ -189,8 +248,14 @@ export default function CreatePlanPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden animate-in fade-in duration-500 -m-4 md:-m-6 p-4 md:p-6">
+    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-64px)] overflow-hidden animate-in fade-in duration-500 -m-4 md:-m-6 p-4 md:p-6 relative">
       
+      {toastMessage && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-brand-cyan text-brand-dark-navy px-4 py-2 rounded-xl font-bold shadow-lg animate-in slide-in-from-top-4 fade-in duration-300">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 shrink-0 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-brand-navy">Tvorca Tréningového Plánu</h1>
@@ -217,7 +282,15 @@ export default function CreatePlanPage() {
         {/* Ľavý stĺpec: Databáza cvikov */}
         <div className="w-full lg:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[400px] lg:min-h-0 shrink-0 lg:shrink">
           <div className="p-4 border-b border-gray-100 bg-brand-off-white shrink-0">
-            <h2 className="font-bold text-lg text-brand-navy mb-3">Katalóg Cvikov</h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-lg text-brand-navy">Katalóg Cvikov</h2>
+              <button
+                onClick={handleCreateQuickCustomExercise}
+                className="text-xs bg-brand-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-brand-cyan hover:text-brand-dark-navy transition-colors flex items-center gap-1"
+              >
+                <span>+ Vlastný</span>
+              </button>
+            </div>
             <div className="space-y-2">
               <input 
                 type="text" 
@@ -312,6 +385,16 @@ export default function CreatePlanPage() {
             </div>
 
             <div>
+              <label className="block text-xs font-semibold text-brand-cyan mb-1 uppercase tracking-wider">Rozcvička (Zápis na začiatku)</label>
+              <textarea 
+                value={warmupNotes}
+                onChange={(e) => setWarmupNotes(e.target.value)}
+                placeholder="Napr. 10 minút bicykel, dynamický strečing..."
+                className="w-full px-3 py-2 bg-brand-dark-navy/50 border border-brand-cyan/30 rounded-lg text-white focus:outline-none focus:border-brand-cyan resize-none h-16"
+              />
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-brand-cyan mb-1 uppercase tracking-wider">Cieľ / Popis (voliteľné)</label>
               <textarea 
                 value={planDescription}
@@ -350,32 +433,61 @@ export default function CreatePlanPage() {
                         </button>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Série</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">Série</label>
                           <input 
                             type="number" 
                             value={pe.target_sets}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_sets", parseInt(e.target.value) || 0)}
-                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
                           />
                         </div>
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Opakovania</label>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">Opakovania</label>
                           <input 
                             type="text" 
                             value={pe.target_reps}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_reps", e.target.value)}
-                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
                           />
                         </div>
-                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex sm:block items-center justify-between sm:justify-start">
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase sm:mb-1">Pauza (sek)</label>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">Tempo</label>
+                          <input 
+                            type="text" 
+                            value={pe.tempo}
+                            onChange={(e) => handleUpdateExerciseParam(pe.tempId, "tempo", e.target.value)}
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
+                            placeholder="2-0-2-0"
+                          />
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">RPE / %</label>
+                          <input 
+                            type="text" 
+                            value={pe.rpe}
+                            onChange={(e) => handleUpdateExerciseParam(pe.tempId, "rpe", e.target.value)}
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
+                            placeholder="80%"
+                          />
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1" title="Pauza medzi sériami">Pauza(s)</label>
                           <input 
                             type="number" 
                             value={pe.target_rest_seconds}
                             onChange={(e) => handleUpdateExerciseParam(pe.tempId, "target_rest_seconds", parseInt(e.target.value) || 0)}
-                            className="w-16 sm:w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-right sm:text-left"
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
+                          />
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex flex-col justify-center">
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1" title="Pauza po tomto cviku pred ďalším">Extr. pauza</label>
+                          <input 
+                            type="number" 
+                            value={pe.rest_between_exercises}
+                            onChange={(e) => handleUpdateExerciseParam(pe.tempId, "rest_between_exercises", parseInt(e.target.value) || 0)}
+                            className="w-full bg-transparent border-none text-brand-navy font-bold focus:ring-0 p-0 text-sm"
                           />
                         </div>
                       </div>

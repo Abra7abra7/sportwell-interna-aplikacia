@@ -35,7 +35,7 @@ Všetky rozhrania striktne dodržiavajú farebnú schému a typografické pravid
 - **Zamedzenie zoomu na iOS:** Hlavička HTML obsahuje meta tag s `user-scalable=no` pre elimináciu zoomovania vstupných polí na iPhonoch.
 - **Hit Targets:** Všetky klikateľné elementy majú minimálny dotykový rozmer **44x44px**.
 - **Žiadne Hover-only interakcie:** Kvôli mobilným zariadeniam nesmú byť dôležité akcie skryté za hoverom.
-- **Bottom Navigation Bar:** Pre rolu `klient` na mobilných zariadeniach je bočné menu nahradené dolným navigačným barom (Home, Moje Cviky, Dokumenty, Profil).
+- **Bottom Navigation Bar:** Pre rolu `klient` na mobilných zariadeniach je bočné menu nahradené dolným navigačným barom (Home, Moje Cviky, Dokumenty, Profil). Kvôli tomu je nutné udržiavať dostatočný spodný `padding-bottom` (napr. `pb-32` v `layout.tsx`), aby navigácia neprekrývala dôležitý obsah.
 
 ---
 
@@ -63,7 +63,8 @@ Mapuje klientov na konkrétnych špecialistov (trénerov/adminov), aby tréneri 
 
 ### E. Tréningové Plány a Cviky
 - **`public.exercises`**: Databáza cvikov. Novinkou je podpora priraďovania inštruktážnych obrázkov/videa cez Storage Bucket **`exercise_images`**.
-- **`public.training_plans`**: Tréningové plány pre klientov. Dáta plánu sú normalizované a bezpečne uložené v databáze.
+- **`public.training_plans`**: Tréningové plány pre klientov. Plány po novom obsahujú aj pole `warmup_notes` pre zápis k rozcvičke.
+- **`public.plan_exercises`**: Cviky priradené do plánu. Okrem základných parametrov (série, opakovania) uchovávajú aj `tempo`, `rpe` a `rest_between_exercises` (extra pauzu). Dáta plánu sú normalizované a bezpečne uložené v databáze.
 
 ### F. Dokumenty a PDF (`public.documents`)
 - Evidencia zmlúv a generovaných PDF dokumentov.

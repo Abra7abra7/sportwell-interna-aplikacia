@@ -9,6 +9,7 @@ interface PlanDetails {
   id: string;
   title: string;
   description: string;
+  warmup_notes: string;
   created_at: string;
   client: { full_name: string };
   creator: { full_name: string };
@@ -18,6 +19,9 @@ interface PlanDetails {
     target_sets: number;
     target_reps: string;
     target_rest_seconds: number;
+    tempo: string;
+    rpe: string;
+    rest_between_exercises: number;
     notes: string;
     exercise: {
       name: string;
@@ -49,11 +53,11 @@ export default function PlanDetailsPage() {
       const { data, error } = await supabase
         .from("training_plans")
         .select(`
-          id, title, description, created_at,
+          id, title, description, warmup_notes, created_at,
           client:client_id(full_name),
           creator:creator_id(full_name),
           plan_exercises (
-            id, order_index, target_sets, target_reps, target_rest_seconds, notes,
+            id, order_index, target_sets, target_reps, target_rest_seconds, tempo, rpe, rest_between_exercises, notes,
             exercise:exercise_id (
               name, category, equipment, image_url, gif_url
             )
@@ -136,6 +140,15 @@ export default function PlanDetailsPage() {
           <div>
             <h1 className="text-3xl font-bold text-brand-navy mb-2">{plan.title}</h1>
             <p className="text-gray-600 text-lg mb-6">{plan.description}</p>
+            {plan.warmup_notes && (
+              <div className="bg-brand-light-cyan/20 p-4 rounded-xl border border-brand-cyan/20 mb-6">
+                <h3 className="text-sm font-bold text-brand-cyan uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
+                  Rozcvička
+                </h3>
+                <p className="text-gray-700 whitespace-pre-line">{plan.warmup_notes}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -194,6 +207,20 @@ export default function PlanDetailsPage() {
                   <span className="block text-[10px] uppercase font-bold text-gray-400">Pauza</span>
                   <span className="font-bold text-brand-navy text-lg">{pe.target_rest_seconds}s</span>
                 </div>
+                <div className="bg-brand-off-white px-4 py-2 rounded-lg border border-gray-100">
+                  <span className="block text-[10px] uppercase font-bold text-gray-400">Tempo</span>
+                  <span className="font-bold text-brand-navy text-lg">{pe.tempo || '-'}</span>
+                </div>
+                <div className="bg-brand-off-white px-4 py-2 rounded-lg border border-gray-100">
+                  <span className="block text-[10px] uppercase font-bold text-gray-400">RPE</span>
+                  <span className="font-bold text-brand-navy text-lg">{pe.rpe || '-'}</span>
+                </div>
+                {pe.rest_between_exercises > 0 && (
+                  <div className="bg-brand-light-cyan/30 px-4 py-2 rounded-lg border border-brand-cyan/30">
+                    <span className="block text-[10px] uppercase font-bold text-brand-cyan">Extra pauza</span>
+                    <span className="font-bold text-brand-navy text-lg">{pe.rest_between_exercises}s</span>
+                  </div>
+                )}
               </div>
 
               {pe.notes && (
