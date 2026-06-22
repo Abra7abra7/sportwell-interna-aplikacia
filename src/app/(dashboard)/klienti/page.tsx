@@ -6,6 +6,7 @@ import { useAuthContext, ClientProfile } from "@/components/providers/AuthProvid
 import { useClients } from "@/hooks/useClients";
 import { useAssignments } from "@/hooks/useAssignments";
 import { createClient } from "@/utils/supabase/client";
+import { formatPhone, formatName, formatAddress, validateField } from "@/utils/validation";
 
 export default function KlientiPage() {
   const router = useRouter();
@@ -254,11 +255,29 @@ function InviteClientModal({ onClose, currentUserProfile }: { onClose: () => voi
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !firstName || !lastName) return;
     
+    // Zod validácia pred odoslaním
+    const fnError = validateField('firstName', firstName);
+    if (fnError) { setErrorMsg(fnError); return; }
+    const lnError = validateField('lastName', lastName);
+    if (lnError) { setErrorMsg(lnError); return; }
+    
+    // Phone a address sú tu dobrovoľné, validujeme len ak sú vyplnené
+    if (phone) {
+      const phError = validateField('phone', phone);
+      if (phError) { setErrorMsg(phError); return; }
+    }
+    if (address) {
+      const addrError = validateField('address', address);
+      if (addrError) { setErrorMsg(addrError); return; }
+    }
+    
+    setErrorMsg("");
     setStatus("loading");
     const supabase = createClient();
     
@@ -323,11 +342,11 @@ function InviteClientModal({ onClose, currentUserProfile }: { onClose: () => voi
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Meno *</label>
-                  <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Ján" />
+                  <input type="text" required value={firstName} onChange={(e) => setFirstName(formatName(e.target.value))} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Ján" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Priezvisko *</label>
-                  <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Kováč" />
+                  <input type="text" required value={lastName} onChange={(e) => setLastName(formatName(e.target.value))} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" placeholder="napr. Kováč" />
                 </div>
               </div>
               
@@ -338,13 +357,19 @@ function InviteClientModal({ onClose, currentUserProfile }: { onClose: () => voi
               
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Telefón</label>
-                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
+                <input type="text" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
               </div>
               
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Adresa / Trvalý pobyt</label>
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
+                <input type="text" value={address} onChange={(e) => setAddress(formatAddress(e.target.value))} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
               </div>
+              
+              {errorMsg && (
+                <div className="text-sm text-red-500 font-medium">
+                  {errorMsg}
+                </div>
+              )}
               
               {status === "error" && (
                 <div className="text-sm text-red-500 font-medium">

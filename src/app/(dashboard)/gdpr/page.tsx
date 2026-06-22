@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { createClient } from "@/utils/supabase/client";
+import { formatPhone, formatName, formatAddress, validateField } from "@/utils/validation";
 
 export default function GdprPage() {
   const router = useRouter();
@@ -73,7 +74,12 @@ export default function GdprPage() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.name === 'phone') value = formatPhone(value);
+    if (e.target.name === 'firstName' || e.target.name === 'lastName') value = formatName(value);
+    if (e.target.name === 'address') value = formatAddress(value);
+    
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleConsentChange = (name: keyof typeof consents) => {
@@ -98,11 +104,25 @@ export default function GdprPage() {
 
   const handleSubmit = async () => {
     setShowValidation(true);
+    setError(null);
     
     if (!formData.firstName || !formData.lastName || !formData.phone || !formData.address || !formData.birthDate) {
       setError("Vyplňte prosím všetky povinné osobné údaje.");
       return;
     }
+    
+    // Zod validácia cez helper
+    const fnError = validateField('firstName', formData.firstName);
+    if (fnError) return setError(fnError);
+    
+    const lnError = validateField('lastName', formData.lastName);
+    if (lnError) return setError(lnError);
+    
+    const phError = validateField('phone', formData.phone);
+    if (phError) return setError(phError);
+    
+    const addrError = validateField('address', formData.address);
+    if (addrError) return setError(addrError);
     if (!consents.rules || !consents.booking) {
       setError("Pre pokračovanie musíte zaškrtnúť povinné súhlasy (Označené hviezdičkou *).");
       return;

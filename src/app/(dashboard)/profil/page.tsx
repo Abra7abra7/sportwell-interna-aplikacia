@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { formatPhone, formatAddress, validateField } from "@/utils/validation";
 
 export default function ProfilPage() {
   const { currentUserProfile, fetchUserProfile, sessionUser } = useAuthContext();
@@ -35,7 +36,10 @@ export default function ProfilPage() {
   }, [currentUserProfile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.name === 'phone') value = formatPhone(value);
+    if (e.target.name === 'address') value = formatAddress(value);
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleToggle = (name: keyof typeof formData) => {
@@ -44,6 +48,14 @@ export default function ProfilPage() {
 
   const handleSave = async () => {
     if (!currentUserProfile) return;
+    
+    // Zod validácia pred uložením
+    const phError = validateField('phone', formData.phone);
+    if (phError) return setMessage({ type: 'error', text: phError });
+    
+    const addrError = validateField('address', formData.address);
+    if (addrError) return setMessage({ type: 'error', text: addrError });
+
     setIsSubmitting(true);
     setMessage(null);
 
