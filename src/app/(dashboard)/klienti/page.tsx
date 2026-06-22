@@ -273,6 +273,17 @@ function InviteClientModal({ onClose, currentUserProfile }: { onClose: () => voi
       });
       
       if (error) throw error;
+
+      try {
+        await fetch('/api/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, firstName, lastName })
+        });
+      } catch (emailErr) {
+        console.error("Nepodarilo sa odoslať email:", emailErr);
+      }
+
       setStatus("success");
       
       setTimeout(() => {

@@ -196,9 +196,18 @@ export default function ProfilPage() {
         </div>
         
         <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-500 mb-6">
-            Základné súhlasy s pravidlami ochrany osobných údajov a podmienkami rezervačného systému boli udelené pri vašej prvej registrácii. Nižšie uvedené doplnkové súhlasy môžete kedykoľvek odvolať alebo znovu udeliť.
-          </p>
+          {currentUserProfile.role === 'klient' ? (
+            <div className="bg-yellow-50 text-yellow-700 p-4 rounded-xl text-sm mb-6 border border-yellow-100 flex gap-3">
+              <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <div>
+                <strong>Tieto súhlasy sú viazané na váš podpis pri registrácii.</strong> Ak ich chcete zmeniť, prosím požiadajte personál na recepcii, aby s vami vygeneroval novú zmluvu.
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 mb-6">
+              Základné súhlasy s pravidlami ochrany osobných údajov a podmienkami rezervačného systému boli udelené pri vašej prvej registrácii. Nižšie uvedené doplnkové súhlasy môžete kedykoľvek odvolať alebo znovu udeliť.
+            </p>
+          )}
 
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-cyan/30 transition-colors">
             <div className="pr-4">
@@ -207,7 +216,8 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('marketingConsent')}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.marketingConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
+              disabled={currentUserProfile.role === 'klient'}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.marketingConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.marketingConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>
@@ -220,7 +230,8 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('metaConsent')}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.metaConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
+              disabled={currentUserProfile.role === 'klient'}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.metaConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.metaConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>
@@ -233,7 +244,8 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('diagnosticsConsent')}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.diagnosticsConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
+              disabled={currentUserProfile.role === 'klient'}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.diagnosticsConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.diagnosticsConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>

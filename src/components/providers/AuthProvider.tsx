@@ -32,6 +32,8 @@ interface AuthContextType {
   magicLinkSent: boolean;
   setMagicLinkSent: React.Dispatch<React.SetStateAction<boolean>>;
   authInitialized: boolean;
+  authError: string;
+  setAuthError: React.Dispatch<React.SetStateAction<string>>;
   authCode: string;
   setAuthCode: React.Dispatch<React.SetStateAction<string>>;
   handleAuthSubmit: (e: React.FormEvent) => Promise<void>;
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   const [registerFullName, setRegisterFullName] = useState('');
   const [registerVerifyPending, setRegisterVerifyPending] = useState(false);
@@ -180,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthLoading(true);
+    setAuthError('');
 
     const { error } = await supabase.auth.signInWithOtp({
       email: authEmail,
@@ -187,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
+      setAuthError(`Chyba: ${error.message}`);
       defaultTriggerToast(`Chyba: ${error.message}`);
     } else {
       setMagicLinkSent(true); // Budeme to brať ako 'otpSent'
@@ -199,12 +204,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthLoading(true);
+    setAuthError('');
     const { data, error } = await supabase.auth.verifyOtp({
       email: authEmail,
       token: authCode,
       type: 'email'
     });
     if (error) {
+      setAuthError(`Zadali ste nesprávny kód.`);
       defaultTriggerToast(`Chyba: nesprávny alebo expirovaný kód.`);
     } else {
       defaultTriggerToast('Prihlásenie úspešné.');
@@ -281,6 +288,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     magicLinkSent,
     setMagicLinkSent,
     authInitialized,
+    authError,
+    setAuthError,
     handleAuthSubmit,
     handleVerifyOtp,
     authCode,

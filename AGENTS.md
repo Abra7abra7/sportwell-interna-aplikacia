@@ -105,6 +105,7 @@ Na úrovni RLS sú striktne izolované kľúčové entity:
 
 ### B. Prihlasovanie (OTP Kódy)
 - Autentifikácia prebieha **bez hesiel cez jednorazové 6-miestne OTP kódy** odosielané na email (technológia Supabase OTP).
+- V prípade zadania nesprávneho alebo expirovaného OTP kódu UI ihneď zobrazí chybovú hlášku (stav `authError` v `AuthProvider`).
 - `AuthProvider.tsx` načíta Session. Ak používateľ neexistuje v `profiles`, systém s ním jedná ako s novým klientom.
 - Ak sa email prihlasujúceho zhoduje v tabuľke `employee_invitations`, stane sa z neho automaticky `trener`.
 
@@ -117,6 +118,12 @@ Proces registrácie klienta je postavený na `/gdpr` stránke:
    - Vytvorí sa skutočný profil klienta (`upsert` do `profiles`) a zapíše sa `gdpr_signed_at`.
    - Záznam z `client_invitations` (čakárne) sa vymaže, čím je predregistrácia dokončená.
    - Klient je vpustený do aplikácie a vidí svoje cviky.
+
+### C.1 E-mailové Pozvánky
+Pri vytvorení klienta do čakárne z Admin rozhrania sa cez backend API (`/api/invite`) pomocou `SUPABASE_SERVICE_ROLE_KEY` zavolá `admin.inviteUserByEmail()`. Týmto sa klientovi z prostredia Supabase automaticky odošle profesionálny e-mail s pozvánkou do aplikácie. Ak daný e-mail už v systéme existuje, API to bezpečne ignoruje.
+
+### C.2 Správa GDPR v Profile
+Súhlasy (Marketing, Meta, Diagnostika) v sekcii *"Môj Profil"* sú pre klientov **uzamknuté (read-only)**. Toto zabraňuje právnemu nesúladu medzi reálnym stavom a vygenerovaným podpisovým PDF. Ak chce klient zmeniť súhlas, musí osobne na recepcii požiadať o vygenerovanie novej zmluvy. Tréneri a Admini si tieto súhlasy meniť môžu.
 
 ### D. File Upload Stratégia
 - **PDF vygenerované zmluvy a reporty:** `client_documents` bucket (dokumenty).
