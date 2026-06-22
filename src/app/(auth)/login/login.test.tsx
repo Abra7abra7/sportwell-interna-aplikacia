@@ -4,7 +4,8 @@ import LoginPage from './page';
 
 // Mock `next/navigation`
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() })
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => ({ get: vi.fn() })
 }));
 
 // Mock AuthContext
@@ -30,35 +31,27 @@ vi.mock('@/components/providers/AuthProvider', () => ({
 describe('LoginPage', () => {
   it('renders login form correctly', () => {
     render(<LoginPage />);
-    expect(screen.getByText('Prihlásenie SportWell')).toBeInTheDocument();
+    expect(screen.getByText('Vitajte späť')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('vas@email.sk')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Prihlásiť sa/i })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('••••••••')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Získať prihlasovací kód/i })).toBeInTheDocument();
   });
 
-  it('allows user to input email and password', () => {
+  it('allows user to input email', () => {
     render(<LoginPage />);
     const emailInput = screen.getByPlaceholderText('vas@email.sk');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
 
     fireEvent.change(emailInput, { target: { value: 'test@sportwell.sk' } });
     expect(mockSetAuthEmail).toHaveBeenCalledWith('test@sportwell.sk');
-
-    fireEvent.change(passwordInput, { target: { value: 'secret' } });
-    expect(mockSetAuthPassword).toHaveBeenCalledWith('secret');
   });
 
   it('submits the form', () => {
     render(<LoginPage />);
     
-    // Fill required fields before submitting
     const emailInput = screen.getByPlaceholderText('vas@email.sk');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
     fireEvent.change(emailInput, { target: { value: 'test@sportwell.sk' } });
-    fireEvent.change(passwordInput, { target: { value: 'secret' } });
 
     const form = screen.getByTestId('login-form');
-    
     fireEvent.submit(form);
     expect(mockHandleAuthSubmit).toHaveBeenCalled();
   });
