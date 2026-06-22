@@ -78,6 +78,26 @@ export default function ProfilPage() {
 
       if (error) throw error;
 
+      if (currentUserProfile.role === 'klient') {
+        const { generatePdfBlob } = await import('@/utils/pdfGenerator');
+        const pdfBlob = await generatePdfBlob('gdpr-update-pdf-template');
+        
+        if (pdfBlob) {
+          const fileName = `gdpr_zmena_${currentUserProfile.id}_${Date.now()}.pdf`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('client_documents')
+            .upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+            
+          if (!uploadError && uploadData) {
+            await supabase.from('documents').insert({
+              client_id: currentUserProfile.id,
+              file_name: `GDPR_Zmena_Suhlasu_${new Date().toLocaleDateString('sk-SK').replace(/\s/g, '')}.pdf`,
+              storage_path: uploadData.path
+            });
+          }
+        }
+      }
+
       if (sessionUser) {
          await fetchUserProfile(sessionUser);
       }
@@ -209,10 +229,10 @@ export default function ProfilPage() {
         
         <div className="p-6 space-y-4">
           {currentUserProfile.role === 'klient' ? (
-            <div className="bg-yellow-50 text-yellow-700 p-4 rounded-xl text-sm mb-6 border border-yellow-100 flex gap-3">
+            <div className="bg-blue-50 text-blue-700 p-4 rounded-xl text-sm mb-6 border border-blue-100 flex gap-3">
               <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <div>
-                <strong>Tieto súhlasy sú viazané na váš podpis pri registrácii.</strong> Ak ich chcete zmeniť, prosím požiadajte personál na recepcii, aby s vami vygeneroval novú zmluvu.
+                <strong>Digitálna správa súhlasov.</strong> Udelené doplnkové súhlasy môžete kedykoľvek odvolať. Odvolanie súhlasu sa automaticky zaznamená v systéme bez nutnosti navštíviť recepciu.
               </div>
             </div>
           ) : (
@@ -228,8 +248,7 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('marketingConsent')}
-              disabled={currentUserProfile.role === 'klient'}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.marketingConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.marketingConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.marketingConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>
@@ -242,8 +261,7 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('metaConsent')}
-              disabled={currentUserProfile.role === 'klient'}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.metaConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.metaConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.metaConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>
@@ -256,8 +274,7 @@ export default function ProfilPage() {
             </div>
             <button 
               onClick={() => handleToggle('diagnosticsConsent')}
-              disabled={currentUserProfile.role === 'klient'}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.diagnosticsConsent ? 'bg-brand-cyan' : 'bg-gray-300'} ${currentUserProfile.role === 'klient' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.diagnosticsConsent ? 'bg-brand-cyan' : 'bg-gray-300'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.diagnosticsConsent ? 'translate-x-8' : 'translate-x-1'}`} />
             </button>
@@ -284,6 +301,54 @@ export default function ProfilPage() {
           )}
         </button>
       </div>
+
+      {/* Hidden PDF template for GDPR Updates */}
+      {currentUserProfile.role === 'klient' && (
+        <div style={{ position: 'absolute', top: 0, left: '-9999px', width: '794px' }}>
+          <div id="gdpr-update-pdf-template" style={{ backgroundColor: '#ffffff', color: '#000000', fontFamily: '"Noto Sans", sans-serif' }}>
+            <div style={{ backgroundColor: '#0A192F', color: '#ffffff', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '0.5px' }}>SportWell</span>
+                <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '2px 0', opacity: 0.8 }}>Černyševského 30, 851 01 Bratislava</p>
+                <p style={{ fontSize: '13px', color: '#D3FAFF', margin: '0', opacity: 0.8 }}>IČO: 52 124 118</p>
+              </div>
+              <div style={{ textAlign: 'right', maxWidth: '350px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#00F0FF', margin: '0 0 8px 0', wordWrap: 'break-word', textTransform: 'uppercase' }}>Zmena udelených súhlasov</h2>
+                <p style={{ fontSize: '14px', color: '#ffffff', margin: 0, opacity: 0.9 }}>Dátum zmeny: {new Date().toLocaleDateString('sk-SK')} {new Date().toLocaleTimeString('sk-SK')}</p>
+              </div>
+            </div>
+            
+            <div style={{ padding: '40px' }}>
+              <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#F7FAFC', borderRadius: '12px', borderLeft: '4px solid #00F0FF', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '16px', color: '#020C1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Osobné údaje klienta</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>Meno:</strong> {currentUserProfile.full_name}</p>
+                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F', width: '120px', display: 'inline-block' }}>E-mail:</strong> {currentUserProfile.email}</p>
+                </div>
+              </div>
+
+              <h3 style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '20px', paddingBottom: '10px', color: '#020C1B', borderBottom: '2px solid #D3FAFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Aktuálny stav súhlasov po zmene</h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', fontSize: '14px' }}>
+                <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas so spracovaním na marketingové účely:</strong> <span style={{ color: formData.marketingConsent ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{formData.marketingConsent ? 'ÁNO' : 'ODVOLANÝ'}</span></p>
+                </div>
+                <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas s poskytnutím údajov tretej osobe (Meta):</strong> <span style={{ color: formData.metaConsent ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{formData.metaConsent ? 'ÁNO' : 'ODVOLANÝ'}</span></p>
+                </div>
+                <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <p style={{ margin: 0 }}><strong style={{ color: '#0A192F' }}>Súhlas so spracovaním údajov z diagnostiky:</strong> <span style={{ color: formData.diagnosticsConsent ? '#00F0FF' : '#94a3b8', fontWeight: 'bold', marginLeft: '8px' }}>{formData.diagnosticsConsent ? 'ÁNO' : 'ODVOLANÝ'}</span></p>
+                </div>
+              </div>
+              
+              <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
+                <p style={{ margin: 0 }}>Tento dokument o zmene súhlasov bol vygenerovaný a elektronicky potvrdený používateľom po úspešnej autentifikácii zo sekcie "Môj Profil".</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '10px' }}>Systém SportWell • IP adresa a časová stopa uložená v databáze.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

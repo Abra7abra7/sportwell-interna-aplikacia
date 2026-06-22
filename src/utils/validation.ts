@@ -28,20 +28,28 @@ export const formatPhone = (phone: string): string => {
 
 export const formatName = (name: string): string => {
   if (!name) return "";
-  return name
-    .trim()
-    .split(/\s+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+  
+  // Namiesto trim() odstránime len prebytočné medzery a začiatočné medzery, 
+  // aby sme nezabránili používateľovi napísať medzeru počas písania.
+  const hasTrailingSpace = name.endsWith(' ');
+  const formatted = name
+    .trimStart()
+    .replace(/\s{2,}/g, ' ')
+    .split(' ')
+    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : '')
     .join(" ");
+    
+  return hasTrailingSpace && formatted ? formatted + ' ' : formatted;
 };
 
 export const formatAddress = (address: string): string => {
   if (!address) return "";
-  // Odstránime zbytočné dvojité medzery
-  let formatted = address.replace(/\s{2,}/g, ' ').trim();
+  // Odstránime zbytočné dvojité medzery a medzery na začiatku, ale necháme jednu na konci
+  const hasTrailingSpace = address.endsWith(' ');
+  let formatted = address.trimStart().replace(/\s{2,}/g, ' ');
   // Nájde 5 po sebe idúcich čísiel alebo oddelených jednou medzerou a sformátuje na XXX XX (PSČ)
   formatted = formatted.replace(/\b(\d{3})\s*(\d{2})\b/g, '$1 $2');
-  return formatted;
+  return hasTrailingSpace && !formatted.endsWith(' ') ? formatted + ' ' : formatted;
 };
 
 
