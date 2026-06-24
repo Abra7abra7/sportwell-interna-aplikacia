@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { updateProfileAction } from "../actions";
-import { formatPhone, formatAddress, validateField } from "@/utils/validation";
+import { formatPhone, formatZip, validateField } from "@/utils/validation";
 
 interface Profile {
   id: string;
@@ -12,6 +12,9 @@ interface Profile {
   role: string;
   metadata?: {
     birthDate?: string;
+    street?: string;
+    city?: string;
+    zip?: string;
     address?: string;
     marketingConsent?: boolean;
     metaConsent?: boolean;
@@ -30,7 +33,9 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
   const meta = profile.metadata || {};
   const [formData, setFormData] = useState({
     phone: profile.phone || "",
-    address: meta.address || "",
+    street: meta.street || meta.address || "",
+    city: meta.city || "",
+    zip: meta.zip || "",
     marketingConsent: meta.marketingConsent || false,
     metaConsent: meta.metaConsent || false,
     diagnosticsConsent: meta.diagnosticsConsent || false,
@@ -39,12 +44,11 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
     if (e.target.name === "phone") value = formatPhone(value);
-    if (e.target.name === "address") value = formatAddress(value);
+    if (e.target.name === "zip") value = formatZip(value);
     setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleToggle = (name: "marketingConsent" | "metaConsent" | "diagnosticsConsent") => {
-    if (profile.role === "klient") return; // Enforce read-only client GDPR
     setFormData({ ...formData, [name]: !formData[name] });
   };
 
@@ -58,9 +62,21 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
       return;
     }
 
-    const addrError = validateField("address", formData.address);
-    if (addrError) {
-      setMessage({ type: "error", text: addrError });
+    const streetError = validateField("street", formData.street);
+    if (streetError) {
+      setMessage({ type: "error", text: streetError });
+      return;
+    }
+
+    const cityError = validateField("city", formData.city);
+    if (cityError) {
+      setMessage({ type: "error", text: cityError });
+      return;
+    }
+
+    const zipError = validateField("zip", formData.zip);
+    if (zipError) {
+      setMessage({ type: "error", text: zipError });
       return;
     }
 
@@ -178,28 +194,57 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">Telefónne číslo</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full h-11 bg-white border border-gray-200 text-brand-navy rounded-xl px-4 font-semibold focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all text-sm"
-                placeholder="Napr. 09XX XXX XXX"
-              />
+          <div className="grid grid-cols-1 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">Telefónne číslo</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full h-11 bg-white border border-gray-200 text-brand-navy rounded-xl px-4 font-semibold focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all text-sm"
+                  placeholder="Napr. 09XX XXX XXX"
+                />
+              </div>
+              <div />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">Trvalý pobyt (Adresa)</label>
+            
+            <div className="col-span-full">
+              <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">Ulica a číslo</label>
               <input
                 type="text"
-                name="address"
-                value={formData.address}
+                name="street"
+                value={formData.street}
                 onChange={handleInputChange}
                 className="w-full h-11 bg-white border border-gray-200 text-brand-navy rounded-xl px-4 font-semibold focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all text-sm"
-                placeholder="Ulica, číslo, PSČ, Mesto"
+                placeholder="Hlavná 123"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">PSČ</label>
+                <input
+                  type="text"
+                  name="zip"
+                  value={formData.zip}
+                  onChange={handleInputChange}
+                  className="w-full h-11 bg-white border border-gray-200 text-brand-navy rounded-xl px-4 font-semibold focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all text-sm"
+                  placeholder="81101"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-1.5">Mesto</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className="w-full h-11 bg-white border border-gray-200 text-brand-navy rounded-xl px-4 font-semibold focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan outline-none transition-all text-sm"
+                  placeholder="Bratislava"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -215,26 +260,12 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
             </svg>
             <h3 className="text-base font-bold text-brand-navy">Správa súhlasov a súkromia</h3>
           </div>
-          {isClient && (
-            <span className="text-[10px] font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">Uzamknuté</span>
-          )}
         </div>
 
         <div className="p-6 space-y-4">
-          {isClient ? (
-            <div className="bg-yellow-50/50 text-yellow-800 p-4 rounded-xl text-sm mb-6 border border-yellow-200 flex gap-3 font-medium leading-relaxed">
-              <svg className="w-5 h-5 shrink-0 mt-0.5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <strong>Digitálna správa súhlasov je uzamknutá.</strong> Doplnkové súhlasy (Marketing, Meta, Diagnostika) boli vygenerované vo vašom zmluvnom PDF pri registrácii. Pre zmenu súhlasov prosím kontaktujte recepciu.
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 mb-6 font-medium leading-relaxed">
-              Základné súhlasy s pravidlami ochrany osobných údajov a podmienkami rezervačného systému boli udelené pri vašej registrácii. Nižšie uvedené doplnkové súhlasy môžete kedykoľvek zmeniť.
-            </p>
-          )}
+          <p className="text-sm text-gray-500 mb-6 font-medium leading-relaxed">
+            Základné súhlasy s pravidlami ochrany osobných údajov a podmienkami rezervačného systému boli udelené pri vašej registrácii. Nižšie uvedené doplnkové súhlasy môžete kedykoľvek zmeniť. Zmena súhlasov automaticky vygeneruje novú PDF zmluvu.
+          </p>
 
           {/* Marketing Consent */}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-brand-cyan/20 transition-colors">
@@ -244,10 +275,9 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
             </div>
             <button
               onClick={() => handleToggle("marketingConsent")}
-              disabled={isClient}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 cursor-pointer ${
                 formData.marketingConsent ? "bg-brand-cyan" : "bg-gray-300"
-              } ${isClient ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+              }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
@@ -265,10 +295,9 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
             </div>
             <button
               onClick={() => handleToggle("metaConsent")}
-              disabled={isClient}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 cursor-pointer ${
                 formData.metaConsent ? "bg-brand-cyan" : "bg-gray-300"
-              } ${isClient ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+              }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
@@ -286,10 +315,9 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
             </div>
             <button
               onClick={() => handleToggle("diagnosticsConsent")}
-              disabled={isClient}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 ${
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shrink-0 cursor-pointer ${
                 formData.diagnosticsConsent ? "bg-brand-cyan" : "bg-gray-300"
-              } ${isClient ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+              }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${

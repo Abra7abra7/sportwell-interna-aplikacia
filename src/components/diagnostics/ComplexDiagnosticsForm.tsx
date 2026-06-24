@@ -50,7 +50,11 @@ export default function ComplexDiagnosticsForm({
         setPhone(client.phone || '');
         if (client.metadata) {
           setBirthDate(client.metadata.birth_date || client.metadata.birthDate || '');
-          setAddress(client.metadata.address || '');
+        setAddress(
+          client.metadata?.street 
+            ? `${client.metadata.street}, ${client.metadata.zip} ${client.metadata.city}` 
+            : (client.metadata?.address || '')
+        );
         }
       }
     }
@@ -67,7 +71,11 @@ export default function ComplexDiagnosticsForm({
       setPhone(client.phone || '');
       if (client.metadata) {
         setBirthDate(client.metadata.birth_date || client.metadata.birthDate || '');
-        setAddress(client.metadata.address || '');
+        setAddress(
+          client.metadata?.street 
+            ? `${client.metadata.street}, ${client.metadata.zip} ${client.metadata.city}` 
+            : (client.metadata?.address || '')
+        );
       }
     } else {
       setErrorMsg('Klient s týmto e-mailom nebol nájdený. Vyplňte údaje ručne pre registráciu.');

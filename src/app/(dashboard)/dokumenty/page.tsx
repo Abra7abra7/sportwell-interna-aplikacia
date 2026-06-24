@@ -28,7 +28,7 @@ export default async function DokumentyPage() {
   // Overenie prístupových práv (RBAC)
   const role = currentUserProfile.role;
   const perms = currentUserProfile.permissions || {};
-  const canRead = perms.dokumenty?.read === true || ["admin", "majitel", "recepcia"].includes(role);
+  const canRead = perms.dokumenty?.read === true || ["admin", "majitel", "recepcia", "klient", "trener", "fyzioterapeut"].includes(role);
 
   if (!canRead) {
     redirect("/dashboard");

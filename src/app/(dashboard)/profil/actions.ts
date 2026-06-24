@@ -3,10 +3,14 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { generateGdprPdf } from "@/utils/pdf/generateGdprPdf";
+import { GdprConsentFormData } from "@/components/gdpr/schema";
 
 const profileUpdateSchema = z.object({
   phone: z.string().min(9, "Telefónne číslo je príliš krátke.").regex(/^\+?[0-9\s]+$/, "Telefónne číslo má nesprávny formát."),
-  address: z.string().min(10, "Adresa je príliš krátka. Zadajte Ulicu, Číslo, PSČ a Mesto."),
+  street: z.string().min(3, "Ulica a číslo sú povinné."),
+  city: z.string().min(2, "Mesto je povinné."),
+  zip: z.string().regex(/^\d{5}$/, "PSČ musí obsahovať presne 5 číslic bez medzier."),
   marketingConsent: z.boolean().optional(),
   metaConsent: z.boolean().optional(),
   diagnosticsConsent: z.boolean().optional(),
@@ -14,7 +18,9 @@ const profileUpdateSchema = z.object({
 
 export async function updateProfileAction(data: {
   phone: string;
-  address: string;
+  street: string;
+  city: string;
+  zip: string;
   marketingConsent?: boolean;
   metaConsent?: boolean;
   diagnosticsConsent?: boolean;
@@ -50,18 +56,21 @@ export async function updateProfileAction(data: {
 
   let newMetadata = { ...currentMetadata };
 
-  // Rule: GDPR consents in profile are read-only for clients.
-  if (profile.role === "klient") {
-    // If the role is client, we ignore consents from request payload and preserve existing consents from DB.
-    newMetadata.address = validatedData.address;
-    // Consents remain unchanged!
-  } else {
-    // If the role is trainer/admin, they can edit consents.
-    newMetadata.address = validatedData.address;
-    newMetadata.marketingConsent = validatedData.marketingConsent ?? currentMetadata.marketingConsent ?? false;
-    newMetadata.metaConsent = validatedData.metaConsent ?? currentMetadata.metaConsent ?? false;
-    newMetadata.diagnosticsConsent = validatedData.diagnosticsConsent ?? currentMetadata.diagnosticsConsent ?? false;
-  }
+  // Consents can be edited by both klienti and admins/trainers.
+  newMetadata.street = validatedData.street;
+  newMetadata.city = validatedData.city;
+  newMetadata.zip = validatedData.zip;
+  // Fallback string for old logic, optional:
+  newMetadata.address = `${validatedData.street}, ${validatedData.zip} ${validatedData.city}`;
+
+  newMetadata.marketingConsent = validatedData.marketingConsent ?? currentMetadata.marketingConsent ?? false;
+  newMetadata.metaConsent = validatedData.metaConsent ?? currentMetadata.metaConsent ?? false;
+  newMetadata.diagnosticsConsent = validatedData.diagnosticsConsent ?? currentMetadata.diagnosticsConsent ?? false;
+
+  const consentsChanged = 
+    newMetadata.marketingConsent !== currentMetadata.marketingConsent ||
+    newMetadata.metaConsent !== currentMetadata.metaConsent ||
+    newMetadata.diagnosticsConsent !== currentMetadata.diagnosticsConsent;
 
   const { error: updateErr } = await supabase
     .from("profiles")
@@ -74,6 +83,55 @@ export async function updateProfileAction(data: {
   if (updateErr) {
     console.error("Error updating profile:", updateErr);
     throw new Error("Chyba pri ukladaní zmien profilu: " + updateErr.message);
+  }
+
+  // If consents changed, generate a new GDPR PDF document
+  if (consentsChanged) {
+    const fullNameParts = profile.full_name.split(" ");
+    const firstName = fullNameParts[0] || "";
+    const lastName = fullNameParts.slice(1).join(" ") || "";
+
+    const pdfData: GdprConsentFormData = {
+      firstName,
+      lastName,
+      birthDate: newMetadata.birthDate || "",
+      street: newMetadata.street || "",
+      city: newMetadata.city || "",
+      zip: newMetadata.zip || "",
+      email: profile.email || "",
+      phone: validatedData.phone || "",
+      primaryInterest: newMetadata.serviceInterest || [],
+      marketingAccepted: newMetadata.marketingConsent,
+      metaAccepted: newMetadata.metaConsent,
+      diagAccepted: newMetadata.diagnosticsConsent
+    };
+
+    try {
+      const pdfBuffer = await generateGdprPdf(pdfData);
+      const fileName = `gdpr_${user.id}_${Date.now()}.pdf`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('client_documents')
+        .upload(filePath, pdfBuffer, { contentType: 'application/pdf' });
+
+      if (uploadError) {
+        console.error("Storage upload failed for new PDF:", uploadError);
+      } else if (uploadData) {
+        // Insert record into documents table
+        const { error: docError } = await supabase.from('documents').insert({
+          client_id: user.id,
+          file_name: `GDPR_Suhlas_Aktualizovany_${lastName}.pdf`,
+          storage_path: uploadData.path
+        });
+        if (docError) {
+          console.error("Document insert failed for new PDF:", docError);
+        }
+      }
+    } catch (pdfErr) {
+      console.error("Failed to generate updated GDPR PDF:", pdfErr);
+      // We don't throw here to avoid failing the profile update, but we log the error.
+    }
   }
 
   revalidatePath("/profil");

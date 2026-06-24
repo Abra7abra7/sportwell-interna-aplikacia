@@ -42,14 +42,10 @@ export const formatName = (name: string): string => {
   return hasTrailingSpace && formatted ? formatted + ' ' : formatted;
 };
 
-export const formatAddress = (address: string): string => {
-  if (!address) return "";
-  // Odstránime zbytočné dvojité medzery a medzery na začiatku, ale necháme jednu na konci
-  const hasTrailingSpace = address.endsWith(' ');
-  let formatted = address.trimStart().replace(/\s{2,}/g, ' ');
-  // Nájde 5 po sebe idúcich čísiel alebo oddelených jednou medzerou a sformátuje na XXX XX (PSČ)
-  formatted = formatted.replace(/\b(\d{3})\s*(\d{2})\b/g, '$1 $2');
-  return hasTrailingSpace && !formatted.endsWith(' ') ? formatted + ' ' : formatted;
+export const formatZip = (zip: string): string => {
+  if (!zip) return "";
+  // Remove all non-digit characters
+  return zip.replace(/[^\d]/g, '').substring(0, 5);
 };
 
 
@@ -61,7 +57,9 @@ export const validationSchemas = {
   phone: z.string()
     .min(9, "Telefónne číslo je príliš krátke.")
     .regex(/^\+?[0-9\s]+$/, "Telefónne číslo má nesprávny formát (môže obsahovať len čísla a znak +)."),
-  address: z.string().min(10, "Adresa je príliš krátka. Zadajte Ulicu, Číslo, PSČ a Mesto."),
+  street: z.string().min(3, "Ulica a číslo sú povinné."),
+  city: z.string().min(2, "Mesto je povinné."),
+  zip: z.string().regex(/^\d{5}$/, "PSČ musí obsahovať presne 5 číslic bez medzier."),
   email: z.string().email("Neplatný formát e-mailovej adresy."),
 };
 

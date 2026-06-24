@@ -41,7 +41,11 @@ export default function DeviceLeaseAgreementForm({
       if (client) {
         setFullName(client.full_name || '');
         setBirthDate(client.metadata?.birth_date || client.metadata?.birthDate || '');
-        setAddress(client.metadata?.address || '');
+        setAddress(
+          client.metadata?.street 
+            ? `${client.metadata.street}, ${client.metadata.zip} ${client.metadata.city}` 
+            : (client.metadata?.address || '')
+        );
       }
     }
   }, [selectedClientId, clients]);

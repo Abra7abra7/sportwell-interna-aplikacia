@@ -155,9 +155,9 @@ Keď sa nový alebo predregistrovaný klient prvýkrát prihlási a jeho profil 
 5.  **Presmerovanie:** Klient je úspešne prepustený do aplikácie na `/dashboard`.
 
 ### C. Ochrana GDPR súhlasov v profile klienta
-*   Pre rolu `klient` sú prepínače GDPR súhlasov (Marketing, Meta, Diagnostika) v sekcii *Môj Profil* **uzamknuté (read-only)**.
-*   Toto chráni systém pred nesúladom medzi podpísanou zmluvou (fyzické PDF v úložisku) a nastavením v databáze. Ak si klient želá zmeniť súhlasy, musí o to požiadať recepciu/administrátora, ktorý vygeneruje novú zmluvu.
-*   Server Action `updateProfileAction` striktne ignoruje akékoľvek zmeny súhlasov zaslané klientom a akceptuje ich len od administrátorov/trénerov.
+*   Pre rolu `klient` sú prepínače GDPR súhlasov (Marketing, Meta, Diagnostika) v sekcii *Môj Profil* **odomknuté**.
+*   Pri akejkoľvek zmene súhlasov zo strany klienta (alebo personálu) Server Action `updateProfileAction` **automaticky vygeneruje novú PDF zmluvu** so zachovanými identifikačnými údajmi a aktuálnymi súhlasmi.
+*   Toto chráni systém pred nesúladom medzi zmluvou a databázou, pretože databáza a PDF zmluva sú synchronizované priamo pri uložení profilu. Nové PDF sa priradí klientovi v module Dokumenty.
 
 ### D. PDF Generovanie na Serveri
 Všetky exporty (GDPR dohody, diagnostické správy) sa generujú výlučne na serveri prostrednívom `pdfmake`:
@@ -170,6 +170,17 @@ Nahrávanie súborov (napr. obrázky cvikov v `<ExerciseFormModal>` alebo prílo
 2.  Klientsky komponent nahrá súbor priamo do Supabase Storage bucketu (`exercise_images` alebo `client_records_files`) pomocou klientskeho SDK.
 3.  Získa sa verejná/súkromná cesta k súboru.
 4.  Cesta (URL) sa odošle do Server Action ako textové pole v rámci uloženia formulára.
+
+### F. Jednotný Vizuál PDF Súborov (PdfBuilder)
+Všetky PDF exporty v systéme používajú zjednotený dizajn (čierna hlavička, logo SportWell, IČO, rovnaké písma a formátovanie tabuliek). Týmto sa zabezpečila maximálna vizuálna zhoda:
+*   Generovanie vizuálu obstaráva **jedna šablóna** `src/utils/pdf/PdfBuilder.ts`.
+*   Akékoľvek zmeny firemného vizuálu (napr. výmena loga, zmena farby pozadia hlavičky) rob výhradne v tomto súbore.
+*   Jednotlivé moduly ako `generateDiagnosticPdf` alebo `generateGdprPdf` už generujú iba samotný text a odrážky daného dokumentu a túto prácu odovzdávajú builderu.
+
+### G. Rozdelená Adresa (Street, City, Zip) a Fallback Logika
+Z dôvodu požiadaviek na detailnejšie ukladanie klienta je pole pre adresu natívne **rozdelené na 3 časti**: `street`, `city` a `zip`. Tieto atribúty žijú v `metadata` profile používateľa.
+*   **Spätná kompatibilita:** Keďže staré účty disponujú iba spojeným atribútom `address`, ukladáme doň v akciách (`actions.ts`) pre istotu celú spojenú adresu ako textový string (`Hlavná 1, 81101 Bratislava`).
+*   **Zobrazovanie v UI a PDF:** Pri zobrazovaní adresy v rozhraní (Napr. Detail klienta alebo diagnostiky) systém použije nasledujúci fallback pattern: `client.metadata?.street ? \`\${client.metadata.street}, \${client.metadata.zip} \${client.metadata.city}\` : (client.metadata?.address || "Nezadané")`. Toto bráni zobrazeniu prázdneho miesta u starých klientov.
 
 ---
 

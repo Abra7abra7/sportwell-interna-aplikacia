@@ -23,10 +23,12 @@ interface GdprWizardProps {
     firstName: string;
     lastName: string;
     birthDate: string;
-    address: string;
+    street: string;
+    city: string;
+    zip: string;
     email: string;
     phone: string;
-    primaryInterest: string;
+    primaryInterest: string[];
     marketingAccepted: boolean;
     metaAccepted: boolean;
     diagAccepted: boolean;
@@ -47,10 +49,16 @@ export default function GdprWizard({
   const [onbFirstName, setOnbFirstName] = useState(initialFirstName);
   const [onbLastName, setOnbLastName] = useState(initialLastName);
   const [onbBirthDate, setOnbBirthDate] = useState(currentUserProfile.metadata?.birthDate || '');
-  const [onbAddress, setOnbAddress] = useState(currentUserProfile.metadata?.address || '');
+  const [onbStreet, setOnbStreet] = useState(currentUserProfile.metadata?.street || currentUserProfile.metadata?.address || '');
+  const [onbCity, setOnbCity] = useState(currentUserProfile.metadata?.city || '');
+  const [onbZip, setOnbZip] = useState(currentUserProfile.metadata?.zip || '');
   const [onbEmail, setOnbEmail] = useState(currentUserProfile.email || sessionUser?.email || '');
   const [onbPhone, setOnbPhone] = useState(currentUserProfile.phone || '');
-  const [onbInterest, setOnbInterest] = useState(currentUserProfile.metadata?.serviceInterest || 'Fyzioterapia a diagnostika');
+  const [onbInterests, setOnbInterests] = useState<string[]>(
+    Array.isArray(currentUserProfile.metadata?.serviceInterest) 
+      ? currentUserProfile.metadata.serviceInterest 
+      : (currentUserProfile.metadata?.serviceInterest ? [currentUserProfile.metadata.serviceInterest] : [])
+  );
 
   const [onbPrivacyAccepted, setOnbPrivacyAccepted] = useState(false);
   const [onbTermsAccepted, setOnbTermsAccepted] = useState(false);
@@ -87,10 +95,12 @@ export default function GdprWizard({
         firstName: onbFirstName,
         lastName: onbLastName,
         birthDate: onbBirthDate,
-        address: onbAddress,
+        street: onbStreet,
+        city: onbCity,
+        zip: onbZip,
         email: onbEmail,
         phone: onbPhone,
-        primaryInterest: onbInterest,
+        primaryInterest: onbInterests,
         marketingAccepted: onbMarketingAccepted,
         metaAccepted: onbMetaAccepted,
         diagAccepted: onbDiagAccepted,
@@ -175,25 +185,62 @@ export default function GdprWizard({
                   id="phone"
                   type="tel"
                   required
+                  pattern="^\+?[0-9\s]+$"
+                  title="Povolené sú len číslice, medzery a znak + na začiatku"
                   value={onbPhone}
-                  onChange={(e) => setOnbPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^\+0-9\s]/g, '');
+                    setOnbPhone(val);
+                  }}
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
                   placeholder="+421 900 000 000"
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="address" className="block text-gray-300 font-semibold mb-1">Trvalý pobyt <span className="text-red-500">*</span></label>
+            <div className="col-span-full">
+              <label htmlFor="street" className="block text-gray-300 font-semibold mb-1">Ulica a číslo <span className="text-red-500">*</span></label>
               <input
-                id="address"
+                id="street"
                 type="text"
                 required
-                value={onbAddress}
-                onChange={(e) => setOnbAddress(e.target.value)}
+                minLength={3}
+                value={onbStreet}
+                onChange={(e) => setOnbStreet(e.target.value)}
                 className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
-                placeholder="Hlavná 123, 811 01 Bratislava"
+                placeholder="Hlavná 123"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="zip" className="block text-gray-300 font-semibold mb-1">PSČ <span className="text-red-500">*</span></label>
+                <input
+                  id="zip"
+                  type="text"
+                  required
+                  value={onbZip}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^\d]/g, '').substring(0, 5);
+                    setOnbZip(val);
+                  }}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  placeholder="81101"
+                />
+              </div>
+              <div>
+                <label htmlFor="city" className="block text-gray-300 font-semibold mb-1">Mesto <span className="text-red-500">*</span></label>
+                <input
+                  id="city"
+                  type="text"
+                  required
+                  minLength={2}
+                  value={onbCity}
+                  onChange={(e) => setOnbCity(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-white focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan"
+                  placeholder="Bratislava"
+                />
+              </div>
             </div>
 
             <div>
@@ -238,12 +285,18 @@ export default function GdprWizard({
                 >
                   <input
                     id={opt.id}
-                    type="radio"
+                    type="checkbox"
                     name="primaryInterest"
                     value={opt.val}
-                    checked={onbInterest === opt.val}
-                    onChange={(e) => setOnbInterest(e.target.value)}
-                    className="mt-0.5 w-4 h-4 text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
+                    checked={onbInterests.includes(opt.val)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setOnbInterests([...onbInterests, opt.val]);
+                      } else {
+                        setOnbInterests(onbInterests.filter(i => i !== opt.val));
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 rounded text-brand-cyan focus:ring-brand-cyan accent-brand-cyan"
                   />
                   <div>
                     <span className="font-bold text-white block">{opt.val}</span>

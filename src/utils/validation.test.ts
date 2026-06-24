@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPhone, formatName, formatAddress } from './validation';
+import { formatPhone, formatName } from './validation';
 
 describe('validation utils', () => {
   describe('formatPhone', () => {
@@ -30,13 +30,4 @@ describe('validation utils', () => {
     });
   });
 
-  describe('formatAddress', () => {
-    it('formats postal codes with a space', () => {
-      expect(formatAddress('Hlavna 12, 85101 Bratislava')).toBe('Hlavna 12, 851 01 Bratislava');
-    });
-
-    it('removes double spaces', () => {
-      expect(formatAddress('Hlavna 12,   85101  Bratislava')).toBe('Hlavna 12, 851 01 Bratislava');
-    });
-  });
 });

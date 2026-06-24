@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { inviteClientAction } from '../actions';
-import { formatPhone, formatName, formatAddress, validateField } from "@/utils/validation";
+import { formatPhone, formatName, validateField } from "@/utils/validation";
 
 interface InviteClientModalProps {
   onClose: () => void;
@@ -31,9 +31,9 @@ export default function InviteClientModal({ onClose }: InviteClientModalProps) {
       const phError = validateField('phone', phone);
       if (phError) { setErrorMsg(phError); return; }
     }
-    if (address) {
-      const addrError = validateField('address', address);
-      if (addrError) { setErrorMsg(addrError); return; }
+    if (address && address.length < 3) {
+      setErrorMsg("Ulica a číslo sú povinné.");
+      return;
     }
     
     setErrorMsg("");
@@ -106,7 +106,7 @@ export default function InviteClientModal({ onClose }: InviteClientModalProps) {
               
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Adresa / Trvalý pobyt</label>
-                <input type="text" value={address} onChange={(e) => setAddress(formatAddress(e.target.value))} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
+                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-cyan focus:border-transparent transition-all" />
               </div>
               
               {errorMsg && (

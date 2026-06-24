@@ -105,7 +105,13 @@ export default function DocumentList({ initialDocuments, role }: DocumentListPro
                       {doc.file_name}
                     </p>
                     <p className="text-xs text-gray-400 font-semibold mt-1">
-                      {new Date(doc.created_at).toLocaleDateString("sk-SK")}
+                      {new Date(doc.created_at).toLocaleString("sk-SK", {
+                        day: 'numeric',
+                        month: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </p>
                   </div>
                 </div>

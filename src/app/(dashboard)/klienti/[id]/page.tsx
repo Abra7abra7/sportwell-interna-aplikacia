@@ -310,7 +310,11 @@ export default function ClientProfilePage() {
                   </div>
                   <div className="md:col-span-2 lg:col-span-1">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Adresa (Trvalý pobyt)</p>
-                    <p className="font-bold text-brand-navy text-lg">{clientProfile.metadata?.address || "Nezadané"}</p>
+                    <p className="font-bold text-brand-navy text-lg">
+                      {clientProfile.metadata?.street 
+                        ? `${clientProfile.metadata.street}, ${clientProfile.metadata.zip} ${clientProfile.metadata.city}` 
+                        : (clientProfile.metadata?.address || "Nezadané")}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Záujem o službu</p>

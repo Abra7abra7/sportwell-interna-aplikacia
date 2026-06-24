@@ -15,16 +15,21 @@ export async function submitGdprConsent(formData: GdprConsentFormData) {
   }
 
   // 2. Bezpečná server-side validácia údajov
-  const validatedData = gdprConsentSchema.parse(formData);
+  const validation = gdprConsentSchema.safeParse(formData);
+  if (!validation.success) {
+    throw new Error(validation.error.issues[0].message);
+  }
+  const validatedData = validation.data;
 
   // 3. Generovanie PDF na serveri (žiadny html2canvas v prehliadači)
   const pdfBuffer = await generateGdprPdf(validatedData);
   const fileName = `gdpr_${user.id}_${Date.now()}.pdf`;
 
   // 4. Bezpečný upload do privátneho bucketu client_documents
+  const filePath = `${user.id}/${fileName}`;
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('client_documents')
-    .upload(fileName, pdfBuffer, { contentType: 'application/pdf' });
+    .upload(filePath, pdfBuffer, { contentType: 'application/pdf' });
     
   if (uploadError) {
     console.error("Storage upload failed:", uploadError);
@@ -43,9 +48,12 @@ export async function submitGdprConsent(formData: GdprConsentFormData) {
 
   const newMetadata = {
     ...(existingProfile?.metadata || {}),
-    address: validatedData.address,
-    birthDate: validatedData.birthDate,
-    serviceInterest: validatedData.primaryInterest,
+    street: validation.data.street,
+    city: validation.data.city,
+    zip: validation.data.zip,
+    // Legacy fallback
+    address: `${validation.data.street}, ${validation.data.zip} ${validation.data.city}`,
+    serviceInterest: validation.data.primaryInterest,
     marketingConsent: validatedData.marketingAccepted,
     metaConsent: validatedData.metaAccepted,
     diagnosticsConsent: validatedData.diagAccepted
