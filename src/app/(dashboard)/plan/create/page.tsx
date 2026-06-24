@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { createPlanAction, createQuickExerciseAction } from "../actions";
 
 interface Exercise {
   id: string;
@@ -140,37 +141,16 @@ export default function CreatePlanPage() {
     const name = window.prompt("Zadajte názov nového vlastného cviku (napr. 'Tlak s jednoručkami'):");
     if (!name || !name.trim()) return;
 
-    const { data: userData } = await supabase.auth.getUser();
-    const creatorId = userData?.user?.id;
-
-    if (!creatorId) {
-      alert("Chyba autentifikácie.");
-      return;
-    }
-
     setIsSaving(true);
-    const { data: newExData, error: newExError } = await supabase
-      .from("exercises")
-      .insert([{
-        name: name.trim(),
-        category: "Vlastné",
-        equipment: "Vlastná váha",
-        primary_muscles: [],
-        is_custom: true,
-        created_by: creatorId
-      }])
-      .select("*")
-      .single();
-    
-    setIsSaving(false);
-
-    if (newExError || !newExData) {
-      alert("Chyba pri vytváraní cviku: " + newExError?.message);
-      return;
+    try {
+      const newExData = await createQuickExerciseAction(name.trim());
+      setExercises(prev => [...prev, newExData].sort((a, b) => a.name.localeCompare(b.name)));
+      handleAddExerciseToPlan(newExData);
+    } catch (err: any) {
+      alert(err.message || "Chyba pri vytváraní cviku.");
+    } finally {
+      setIsSaving(false);
     }
-
-    setExercises(prev => [...prev, newExData].sort((a, b) => a.name.localeCompare(b.name)));
-    handleAddExerciseToPlan(newExData);
   };
 
   const handleSavePlan = async () => {
@@ -188,63 +168,32 @@ export default function CreatePlanPage() {
     }
 
     setIsSaving(true);
-    
-    // Zistíme, kto plán vytvoril
-    const { data: userData } = await supabase.auth.getUser();
-    const creatorId = userData?.user?.id;
 
-    if (!creatorId) {
-      alert("Chyba autentifikácie.");
-      setIsSaving(false);
-      return;
-    }
+    try {
+      await createPlanAction({
+        title: planTitle.trim(),
+        description: planDescription.trim(),
+        warmupNotes: warmupNotes.trim(),
+        clientId: selectedClientId,
+        exercises: planExercises.map((pe) => ({
+          exerciseId: pe.exercise.id,
+          targetSets: pe.target_sets,
+          targetReps: pe.target_reps,
+          targetDuration: pe.target_duration,
+          targetRestSeconds: pe.target_rest_seconds,
+          tempo: pe.tempo,
+          rpe: pe.rpe,
+          restBetweenExercises: pe.rest_between_exercises,
+          notes: pe.notes,
+        })),
+      });
 
-    // 1. Vlož do training_plans
-    const { data: planData, error: planError } = await supabase
-      .from("training_plans")
-      .insert([{
-        client_id: selectedClientId,
-        creator_id: creatorId,
-        title: planTitle,
-        description: planDescription,
-        warmup_notes: warmupNotes,
-        is_active: true
-      }])
-      .select("id")
-      .single();
-
-    if (planError || !planData) {
-      alert("Chyba pri ukladaní hlavičky plánu: " + planError?.message);
-      setIsSaving(false);
-      return;
-    }
-
-    // 2. Vlož do plan_exercises
-    const exercisesToInsert = planExercises.map((pe, index) => ({
-      plan_id: planData.id,
-      exercise_id: pe.exercise.id,
-      order_index: index + 1,
-      target_sets: pe.target_sets,
-      target_reps: pe.target_reps,
-      target_duration: pe.target_duration,
-      target_rest_seconds: pe.target_rest_seconds,
-      tempo: pe.tempo,
-      rpe: pe.rpe,
-      rest_between_exercises: pe.rest_between_exercises,
-      notes: pe.notes
-    }));
-
-    const { error: exError } = await supabase
-      .from("plan_exercises")
-      .insert(exercisesToInsert);
-
-    setIsSaving(false);
-
-    if (exError) {
-      alert("Plán bol vytvorený, ale nepodarilo sa uložiť cviky: " + exError.message);
-    } else {
       alert("Plán úspešne uložený!");
       router.push("/plan");
+    } catch (err: any) {
+      alert(err.message || "Chyba pri ukladaní plánu.");
+    } finally {
+      setIsSaving(false);
     }
   };
 

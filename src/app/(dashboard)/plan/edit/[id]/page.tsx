@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, useParams } from "next/navigation";
+import { updatePlanAction, createQuickExerciseAction } from "../../actions";
 
 interface Exercise {
   id: string;
@@ -197,37 +198,16 @@ export default function EditPlanPage() {
     const name = window.prompt("Zadajte názov nového vlastného cviku (napr. 'Tlak s jednoručkami'):");
     if (!name || !name.trim()) return;
 
-    const { data: userData } = await supabase.auth.getUser();
-    const creatorId = userData?.user?.id;
-
-    if (!creatorId) {
-      alert("Chyba autentifikácie.");
-      return;
-    }
-
     setIsSaving(true);
-    const { data: newExData, error: newExError } = await supabase
-      .from("exercises")
-      .insert([{
-        name: name.trim(),
-        category: "Vlastné",
-        equipment: "Vlastná váha",
-        primary_muscles: [],
-        is_custom: true,
-        created_by: creatorId
-      }])
-      .select("*")
-      .single();
-    
-    setIsSaving(false);
-
-    if (newExError || !newExData) {
-      alert("Chyba pri vytváraní cviku: " + newExError?.message);
-      return;
+    try {
+      const newExData = await createQuickExerciseAction(name.trim());
+      setExercises(prev => [...prev, newExData].sort((a, b) => a.name.localeCompare(b.name)));
+      handleAddExerciseToPlan(newExData);
+    } catch (err: any) {
+      alert(err.message || "Chyba pri vytváraní cviku.");
+    } finally {
+      setIsSaving(false);
     }
-
-    setExercises(prev => [...prev, newExData].sort((a, b) => a.name.localeCompare(b.name)));
-    handleAddExerciseToPlan(newExData);
   };
 
   const handleSavePlan = async () => {
@@ -245,69 +225,32 @@ export default function EditPlanPage() {
     }
 
     setIsSaving(true);
-    
-    const { data: userData } = await supabase.auth.getUser();
-    const creatorId = userData?.user?.id;
 
-    if (!creatorId) {
-      alert("Chyba autentifikácie.");
-      setIsSaving(false);
-      return;
-    }
+    try {
+      await updatePlanAction(planId, {
+        title: planTitle.trim(),
+        description: planDescription.trim(),
+        warmupNotes: warmupNotes.trim(),
+        clientId: selectedClientId,
+        exercises: planExercises.map((pe) => ({
+          exerciseId: pe.exercise.id,
+          targetSets: pe.target_sets,
+          targetReps: pe.target_reps,
+          targetDuration: pe.target_duration,
+          targetRestSeconds: pe.target_rest_seconds,
+          tempo: pe.tempo,
+          rpe: pe.rpe,
+          restBetweenExercises: pe.rest_between_exercises,
+          notes: pe.notes,
+        })),
+      });
 
-    // 1. Update training_plans
-    const { error: planError } = await supabase
-      .from("training_plans")
-      .update({
-        client_id: selectedClientId,
-        title: planTitle,
-        description: planDescription,
-        warmup_notes: warmupNotes
-      })
-      .eq("id", planId);
-
-    if (planError) {
-      alert("Chyba pri aktualizácii hlavičky plánu: " + planError.message);
-      setIsSaving(false);
-      return;
-    }
-
-    // 2. Vymazať staré cviky z plan_exercises
-    const { error: deleteError } = await supabase
-      .from("plan_exercises")
-      .delete()
-      .eq("plan_id", planId);
-      
-    if (deleteError) {
-      console.error("Chyba pri mazaní starých cvikov:", deleteError);
-    }
-
-    // 3. Vložiť nové zoznamy cvikov
-    const exercisesToInsert = planExercises.map((pe, index) => ({
-      plan_id: planId,
-      exercise_id: pe.exercise.id,
-      order_index: index + 1,
-      target_sets: pe.target_sets,
-      target_reps: pe.target_reps,
-      target_duration: pe.target_duration,
-      target_rest_seconds: pe.target_rest_seconds,
-      tempo: pe.tempo,
-      rpe: pe.rpe,
-      rest_between_exercises: pe.rest_between_exercises,
-      notes: pe.notes
-    }));
-
-    const { error: exError } = await supabase
-      .from("plan_exercises")
-      .insert(exercisesToInsert);
-
-    setIsSaving(false);
-
-    if (exError) {
-      alert("Plán bol aktualizovaný, ale nepodarilo sa uložiť cviky: " + exError.message);
-    } else {
       alert("Plán úspešne upravený!");
       router.push(`/plan/${planId}`);
+    } catch (err: any) {
+      alert(err.message || "Chyba pri úprave plánu.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
