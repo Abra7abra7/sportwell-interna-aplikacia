@@ -97,7 +97,32 @@ export async function inviteClientAction(data: {
 
   const { email, firstName, lastName, phone, address } = validation.data;
 
-  // 1. Zápis do čakárne (client_invitations)
+  // 1. Skontrolujeme, či používateľ už nie je aktívny v profiles (klient, tréner, admin atď.)
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existingProfile) {
+    throw new Error("Používateľ s týmto e-mailom už je v systéme registrovaný a má aktívny profil.");
+  }
+
+  // 2. Skontrolujeme a prípadne vyčistíme osirotený záznam v auth.users pomocou RPC funkcie
+  try {
+    const { data: cleaned, error: rpcError } = await supabase.rpc('clean_orphaned_auth_user', {
+      p_email: email
+    });
+    if (rpcError) {
+      console.error("Error executing clean_orphaned_auth_user RPC:", rpcError);
+    } else if (cleaned) {
+      console.log(`Úspešne vymazaný osirotený používateľ ${email} z auth.users cez RPC`);
+    }
+  } catch (rpcErr) {
+    console.error("Exception executing clean_orphaned_auth_user RPC:", rpcErr);
+  }
+
+  // 3. Zápis do čakárne (client_invitations)
   const { error: dbError } = await supabase.from('client_invitations').insert({
     email,
     first_name: firstName,
@@ -112,7 +137,7 @@ export async function inviteClientAction(data: {
     throw new Error("Tento e-mail už existuje v čakárni alebo nastala chyba databázy.");
   }
 
-  // 2. Odoslanie pozvánky cez Supabase Admin Auth
+  // 4. Odoslanie pozvánky cez Supabase Admin Auth
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -133,14 +158,13 @@ export async function inviteClientAction(data: {
       });
 
       if (inviteError) {
-        if (inviteError.status === 422 || inviteError.message.includes('already been registered')) {
-          console.warn(`Používateľ ${email} už existuje, pozvánka sa neodosiela.`);
-        } else {
-          console.error("Email invite failed:", inviteError);
-        }
+        console.error("Email invite failed:", inviteError);
+        // Ak by sa predsa len objavila chyba 422, vyhodíme ju ako chybu, aby používateľ vedel
+        throw new Error("Nepodarilo sa odoslať pozvánku cez e-mail: " + inviteError.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to call invite admin API:", err);
+      throw new Error(err.message || "Nepodarilo sa odoslať pozývací e-mail.");
     }
   }
 
