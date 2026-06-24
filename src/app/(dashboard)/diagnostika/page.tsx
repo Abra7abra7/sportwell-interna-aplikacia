@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthContext, ClientProfile } from "@/components/providers/AuthProvider";
-import { useClients } from "@/hooks/useClients";
+import { useClients } from "@/app/(dashboard)/klienti/hooks/useClients";
 import { createClient } from "@/utils/supabase/client";
 
 export default function DiagnostikaPage() {

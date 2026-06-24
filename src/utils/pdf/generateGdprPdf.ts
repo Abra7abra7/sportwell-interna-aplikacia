@@ -11,7 +11,7 @@ export async function generateGdprPdf(data: GdprConsentFormData): Promise<Buffer
     }
   };
 
-  const printer = new PdfPrinter(fonts);
+  const printer = new (PdfPrinter as any)(fonts);
 
   const docDefinition: any = {
     content: [
@@ -66,9 +66,9 @@ export async function generateGdprPdf(data: GdprConsentFormData): Promise<Buffer
   const chunks: any[] = [];
 
   return new Promise<Buffer>((resolve, reject) => {
-    pdfDoc.on('data', (chunk) => chunks.push(chunk));
+    pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
     pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-    pdfDoc.on('error', (err) => reject(err));
+    pdfDoc.on('error', (err: any) => reject(err));
     pdfDoc.end();
   });
 }

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { createClient } from "@/utils/supabase/client";
-import { useClients } from "@/hooks/useClients";
+import { useClients } from "@/app/(dashboard)/klienti/hooks/useClients";
 
 export default function DashboardPage() {
   const router = useRouter();

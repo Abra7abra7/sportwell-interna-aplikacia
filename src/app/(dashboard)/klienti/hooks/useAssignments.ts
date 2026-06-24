@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { ClientProfile } from '@/components/providers/AuthProvider';
+import { assignSpecialistAction, removeAssignmentAction } from '../actions';
 
 export function useAssignments() {
   const supabase = createClient();
@@ -32,18 +33,11 @@ export function useAssignments() {
   };
 
   const assignSpecialist = async (clientId: string, specialistId: string, assignedBy: string) => {
-    await supabase.from('client_specialist_assignments').insert({
-      client_id: clientId,
-      specialist_id: specialistId,
-      assigned_by: assignedBy
-    });
+    await assignSpecialistAction(clientId, specialistId, assignedBy);
   };
 
   const removeAssignment = async (clientId: string, specialistId: string) => {
-    await supabase.from('client_specialist_assignments')
-      .delete()
-      .eq('client_id', clientId)
-      .eq('specialist_id', specialistId);
+    await removeAssignmentAction(clientId, specialistId);
   };
 
   return {
