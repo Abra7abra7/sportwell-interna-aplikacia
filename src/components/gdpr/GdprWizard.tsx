@@ -40,14 +40,17 @@ export default function GdprWizard({
   onSubmit,
   onSignOut,
 }: GdprWizardProps) {
+  const initialFirstName = currentUserProfile.metadata?.firstName || currentUserProfile.full_name?.split(' ')[0] || '';
+  const initialLastName = currentUserProfile.metadata?.lastName || currentUserProfile.full_name?.split(' ').slice(1).join(' ') || '';
+
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [onbFirstName, setOnbFirstName] = useState('');
-  const [onbLastName, setOnbLastName] = useState('');
-  const [onbBirthDate, setOnbBirthDate] = useState('');
-  const [onbAddress, setOnbAddress] = useState('');
+  const [onbFirstName, setOnbFirstName] = useState(initialFirstName);
+  const [onbLastName, setOnbLastName] = useState(initialLastName);
+  const [onbBirthDate, setOnbBirthDate] = useState(currentUserProfile.metadata?.birthDate || '');
+  const [onbAddress, setOnbAddress] = useState(currentUserProfile.metadata?.address || '');
   const [onbEmail, setOnbEmail] = useState(currentUserProfile.email || sessionUser?.email || '');
   const [onbPhone, setOnbPhone] = useState(currentUserProfile.phone || '');
-  const [onbInterest, setOnbInterest] = useState('Fyzioterapia a diagnostika');
+  const [onbInterest, setOnbInterest] = useState(currentUserProfile.metadata?.serviceInterest || 'Fyzioterapia a diagnostika');
 
   const [onbPrivacyAccepted, setOnbPrivacyAccepted] = useState(false);
   const [onbTermsAccepted, setOnbTermsAccepted] = useState(false);

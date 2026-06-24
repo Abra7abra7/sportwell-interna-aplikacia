@@ -168,3 +168,36 @@ Súhlasy (Marketing, Meta, Diagnostika) v sekcii *"Môj Profil"* sú pre kliento
 /supabase
   /migrations           # PostgreSQL RLS politiky a definície tabuliek
 ```
+
+---
+
+## 7. ŠTANDARDY KÓDOVANIA, ARCHITEKTÚRY A BEZPEČNOSTI (Fáza 2+)
+
+Pre zachovanie kvality a zabránenie narastaniu technického dlhu sa musia striktne dodržiavať nasledujúce pravidlá:
+
+### A. Architektúra a Modularita (Colocation)
+*   **Feature-Sliced Design (FSD) prístup:** Súbory zoskupujeme podľa domén/funkcií (Feature/Module). 
+*   **Pravidlo zoskupovania:** Ak hook, pomocná utilita alebo komponent slúži výlučne pre konkrétny modul (napr. *Klienti*), musí žiť v priečinku tohto modulu (napr. `src/app/(dashboard)/klienti/hooks/...` alebo `src/components/klienti/...`), nie v globálnych koreňových adresároch.
+*   **Zdieľané priečinky:** Do root adresárov `src/hooks/` a `src/utils/` patria iba utility zdieľané naprieč celou aplikáciou (napr. formátovanie telefónu, detekcia šírky okna).
+*   **Rozsah súborov (God Components):** Žiadny zdrojový súbor by nemal presiahnuť **250–300 riadkov**. Veľké formuláre alebo zložité stránky musia byť dekomponované na menšie, jednoúčelové podkomponenty (napr. `InBodySection.tsx`, `PostureSection.tsx`).
+
+### B. Dátový tok a Bezpečnosť
+*   **Čítanie dát (Read):** Prebieha prednostne na serveri cez **Next.js Server Components**. Klientovi sa posiela len vyrenderované HTML alebo minimálne potrebné JSON dáta. Volania databázy priamo z Client Components sa minimalizujú na nevyhnutné interaktívne stavy.
+*   **Zápis dát (Write/Mutation):** Používajú sa výhradne **Server Actions** (`"use server"`). Všetky vstupné dáta musia byť na serverovej strane prísne validované cez **Zod schémy** predtým, než sa vykoná zápis do Supabase.
+*   **Supabase Storage & RLS:** Žiadna tabuľka ani úložný bucket nesmú byť nastavené ako verejné. Každý dotaz musí prejsť cez PostgreSQL RLS politiky overujúce identitu používateľa (`auth.uid()`) a priradenia.
+*   **Generovanie PDF:** Všetky GDPR zmluvy, zmluvy o zapožičaní a diagnostické správy **sa musia generovať výlučne na serveri** (pomocou `pdfmake` alebo `pdf-lib`). Generovanie PDF na klientovi cez `html2canvas` / `jsPDF` je zakázané z dôvodu ochrany citlivých medicínskych údajov pred ich únikom do pamäte prehliadača v čistom texte.
+
+### C. UX, Responzivita a PWA Offline-Ready
+*   **Mobile-First:** Zložité tabuľky a diagnostické formuláre sa nesmú na mobilných zariadeniach rozpadnúť. Používa sa prístup krokových sprievodcov (Stepper), mobilných kariet (Cards) a integrácia `@tanstack/react-table` pre komplexné zoznamy.
+*   **Offline-Ready:** Diagnostické formuláre musia podporovať ukladanie rozpísaného stavu do lokálneho úložiska (napr. IndexedDB / LocalStorage) a ich automatickú synchronizáciu po obnovení internetového pripojenia.
+*   **Odozva (Feedback):** Každá asynchrónna operácia musí používateľovi poskytnúť vizuálnu odozvu (Skeleton loaders, loading spinnery, Toast správy pri úspechu/chybe).
+
+### D. Definition of Done (PR checklist)
+Pred zlúčením (merge) požiadavky na zmenu (PR) musia byť splnené tieto podmienky:
+1.  Kód prechádza ESLint a TypeScript kontrolou bez chýb (`npm run lint`, `npm run typecheck`).
+2.  Neprebieha žiadny únik privátnych API kľúčov (napr. `SUPABASE_SERVICE_ROLE_KEY`) do klientskeho kódu (kontrola prefixov `NEXT_PUBLIC_`).
+3.  RLS politiky pre všetky prípadné nové tabuľky/buckets sú zavedené a otestované.
+4.  Komponent je plne responzívny (overený na rozlíšeniach pre mobil, tablet a desktop).
+5.  Všetky používateľské vstupy z formulárov sú validované pomocou Zod schém.
+6.  Kritické používateľské cesty (login, registrácia klienta, zápis diagnostiky) majú aktualizované E2E testy v Playwright.
+
