@@ -53,5 +53,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Server-side guard pre GDPR onboarding klientov
+  if (user && pathname !== '/gdpr' && !pathname.startsWith('/api') && !pathname.startsWith('/auth')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, gdpr_signed_at')
+      .eq('id', user.id)
+      .single();
+
+    if (profile && profile.role === 'klient' && !profile.gdpr_signed_at) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/gdpr';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
+

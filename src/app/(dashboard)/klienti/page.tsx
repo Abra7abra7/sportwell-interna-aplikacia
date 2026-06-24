@@ -54,7 +54,7 @@ export default function KlientiPage() {
               className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-cyan focus:border-brand-cyan transition-all shadow-sm"
             />
           </div>
-          {currentUserProfile?.role === 'admin' && (
+          {['admin', 'majitel', 'recepcia'].includes(currentUserProfile?.role || '') && (
             <button
               onClick={() => setIsInviteModalOpen(true)}
               className="bg-brand-cyan hover:bg-brand-cyan/90 hover:-translate-y-0.5 text-brand-dark-navy px-5 py-2.5 rounded-xl font-bold shadow-[0_4px_14px_0_rgba(0,240,255,0.39)] transition-all duration-200 whitespace-nowrap flex items-center gap-2"
@@ -99,7 +99,7 @@ export default function KlientiPage() {
                   <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Priradený personál</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">Aktivita</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-brand-navy/60 uppercase tracking-wider">GDPR Stav</th>
-                  {currentUserProfile?.role === 'admin' && <th className="px-6 py-4"></th>}
+                  {['admin', 'majitel', 'recepcia'].includes(currentUserProfile?.role || '') && <th className="px-6 py-4"></th>}
                 </tr>
               </thead>
               <tbody className="bg-white/50 divide-y divide-gray-50">
@@ -156,7 +156,7 @@ export default function KlientiPage() {
                         </span>
                       )}
                     </td>
-                    {currentUserProfile?.role === 'admin' && (
+                     {['admin', 'majitel', 'recepcia'].includes(currentUserProfile?.role || '') && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={(e) => {

@@ -49,7 +49,7 @@ export default function ZamestnanciPage() {
   };
 
   useEffect(() => {
-    if (currentUserProfile?.role === 'admin') {
+    if (currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'majitel') {
       fetchEmployees();
     }
   }, [currentUserProfile]);
@@ -95,11 +95,11 @@ export default function ZamestnanciPage() {
     else fetchEmployees();
   };
 
-  if (currentUserProfile?.role !== "admin") {
+  if (currentUserProfile?.role !== "admin" && currentUserProfile?.role !== "majitel") {
     return (
       <div className="flex justify-center py-20">
         <div className="bg-red-50 text-red-600 px-6 py-4 rounded-xl font-medium border border-red-100">
-          Nemáte prístup do tejto sekcie. Iba Administrátor môže spravovať zamestnancov.
+          Nemáte prístup do tejto sekcie. Iba Administrátor a Majiteľ môžu spravovať zamestnancov.
         </div>
       </div>
     );
