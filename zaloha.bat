@@ -19,12 +19,12 @@ for /f %%I in ('powershell -Command "Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'"') d
 echo.
 echo KROK 1: Stahujem strukturu databazy (tabulky, pravidla)...
 set SCHEMA_FILE=%TARGET_DIR%\%mydate%_struktura.sql
-call npx supabase db dump --db-url "%DB_URL%" --file "%SCHEMA_FILE%"
+node scripts/backup_structure.js "%SCHEMA_FILE%"
 
 echo.
 echo KROK 2: Stahujem realne data klientov...
 set DATA_FILE=%TARGET_DIR%\%mydate%_data.sql
-call npx supabase db dump --db-url "%DB_URL%" --data-only --file "%DATA_FILE%"
+node scripts/backup_data.js "%DATA_FILE%" %DB_URL%
 
 echo.
 echo KROK 3: Sifrujem data vojenskym standardom (AES-256)...
